@@ -34,14 +34,9 @@ userSchema.pre("save", async function (next) {
 
 // Helper function to compare input and database stored password
 userSchema.methods.comparePassword = async function (inputPassword) {
-  bcrypt.compare(
-    inputPassword,
-    this.password,
-    await function (err, result) {
-      if (err) next(err);
-      else return result;
-    }
-  );
+  bcrypt.compare(inputPassword, this.password, async function (err, result) {
+    return result;
+  });
 };
 
 // Save Schema
