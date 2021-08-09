@@ -13,8 +13,9 @@ require("./config/database");
 // Middlewares
 app.use(express.json());
 
-// Routing
+// Route Middleware
 app.use("/", require("./routes/index"));
+app.use("/test", require("./routes/test"));
 
 // Listener
 app.listen(PORT, () =>

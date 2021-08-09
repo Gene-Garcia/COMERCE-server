@@ -1,7 +1,7 @@
 {
   "name": "co-merce",
   "version": "1.0.0",
-  "description": "An a eCommerce web application for coffee products",
+  "description": "An a eCommerce web application for various products",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
