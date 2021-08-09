@@ -1,6 +1,7 @@
 // Package
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const userSchema = mongoose.Schema({
   email: {
@@ -37,6 +38,17 @@ userSchema.methods.comparePassword = async function (inputPassword) {
   bcrypt.compare(inputPassword, this.password, async function (err, result) {
     return result;
   });
+};
+
+// Helper function to generate a signed JWT for the current/this user
+userSchema.methods.generateSignedToken = async function () {
+  const privateKey = process.env.JWT_KEY;
+  const expireTime = process.env.JWT_EXPIRATION;
+  const token = await jwt.sign({ id: this._id }, privateKey, {
+    expiresIn: expireTime,
+  });
+
+  return token;
 };
 
 // Save Schema

@@ -14,10 +14,16 @@ exports.signin = async (req, res, next) => {
       });
     else {
       if (user.comparePassword(password)) {
+        const token = await user.generateSignedToken();
+
         // remove password field from object
         delete user.password;
 
-        res.status(200).send({ success: true, user });
+        res.status(200).json({
+          success: true,
+          user: { id: user._id, email: user.email },
+          token,
+        });
       } else
         res.status(404).send({
           success: false,
@@ -38,9 +44,10 @@ exports.signup = async (req, res, next) => {
   try {
     const newUser = await User.create({ email, password });
 
+    // The logic, after registration, go back to login, so no need, yet, to send token
     res.status(200).send({
       success: true,
-      user: newUser,
+      user: { id: newUser._id, email: newUser.email },
     });
   } catch (error) {
     res.status(500).send({
