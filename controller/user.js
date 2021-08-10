@@ -1,6 +1,9 @@
 // Models
 const User = require("mongoose").model("User");
 
+// Utilis
+const { sendMailer } = require("../utils/mailer");
+
 exports.signin = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -55,4 +58,73 @@ exports.signup = async (req, res, next) => {
       error: error.message,
     });
   }
+};
+
+exports.postForgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+
+  // we must use the await to access the embed middleware function
+  try {
+    let user = await User.findOne({ email }).exec();
+
+    if (user === null || user === undefined)
+      res
+        .status(404)
+        .json({ success: false, error: "Emaill cannot be found." });
+    else {
+      try {
+        // generate the password
+        user.generateResetPasswordToken();
+        await user.save();
+
+        // send email
+        const resetLink =
+          "https://comerce.netlify.app/reset/" + user.resetPasswordToken;
+
+        const emailMsg = {
+          to: user.email, // Change to your recipient
+          from: process.env.MAILER_OWNER, // Change to your verified sender
+          subject: "Forgot Password Account Request",
+          text: `Go here ${resetLink} to reset your password`,
+          html: `
+        <h1>Password reset</h1>
+        <p>This link will expire within 15 minutes.</p>
+        <a href=${resetLink}>Click here to reset your password</a>
+        <p>Token: ${user.resetPasswordtoken}</p>
+        <br />
+        <p>Thanks,</p>
+        <p>CoMerce team<p/>`,
+        };
+
+        await sendMailer(emailMsg);
+
+        res
+          .status(200)
+          .json({ success: true, message: "An email has been sent." });
+      } catch (error) {
+        // remove the set token in database
+        user.resetPasswordToken = undefined;
+        user.resetPasswordTokenExpiration = undefined;
+        await user.save();
+
+        res.status(500).send({
+          success: false,
+          error: "Email cannot be send successfully",
+        });
+      }
+    }
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+exports.postResetPassword = async (req, res, next) => {
+  const { password, email, resetPasswordToken } = req.body;
+
+  console.log(req.body);
+
+  res.send("reset");
 };

@@ -15,6 +15,7 @@ app.use(express.json());
 
 // Route Middleware
 app.use("/", require("./routes/index"));
+app.use("/user", require("./routes/user"));
 app.use("/test", require("./routes/test"));
 
 // Listener

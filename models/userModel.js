@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const userSchema = mongoose.Schema({
   email: {
@@ -17,6 +18,12 @@ const userSchema = mongoose.Schema({
     type: String,
     required: "Password is required",
     select: false,
+  },
+  resetPasswordToken: {
+    type: String,
+  },
+  resetPasswordTokenExpiration: {
+    type: Date,
   },
 });
 
@@ -49,6 +56,18 @@ userSchema.methods.generateSignedToken = async function () {
   });
 
   return token;
+};
+
+// Helper function to create, save to database, and return a reset password token
+userSchema.methods.generateResetPasswordToken = async function () {
+  const token = await crypto.randomBytes(48).toString("hex");
+
+  // update to database
+  this.resetPasswordToken = token;
+
+  const date = new Date();
+  date.setMinutes(date.getMinutes() + 15);
+  this.resetPasswordTokenExpiration = date;
 };
 
 // Save Schema

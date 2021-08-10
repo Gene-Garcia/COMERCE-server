@@ -19,10 +19,10 @@ exports.sendMailer = async (message) => {
 
   try {
     const result = await mailer.send(message);
-    console.log(result);
+    // console.log(result);
     return result;
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return error.message;
   }
 };
