@@ -16,11 +16,13 @@ exports.signin = async (req, res, next) => {
         error: "Invalid Credentials",
       });
     else {
-      if (user.comparePassword(password)) {
+      const credentials = await user.comparePassword(password);
+      console.log(credentials);
+      if (credentials) {
         const token = await user.generateSignedToken();
 
         // remove password field from object
-        delete user.password;
+        // delete user.password;
 
         res.status(200).json({
           success: true,

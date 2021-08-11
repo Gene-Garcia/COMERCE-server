@@ -42,9 +42,8 @@ userSchema.pre("save", async function (next) {
 
 // Helper function to compare input and database stored password
 userSchema.methods.comparePassword = async function (inputPassword) {
-  bcrypt.compare(inputPassword, this.password, async function (err, result) {
-    return result;
-  });
+  const result = await bcrypt.compare(inputPassword, this.password);
+  return result;
 };
 
 // Helper function to generate a signed JWT for the current/this user
