@@ -63,7 +63,6 @@ userSchema.methods.generateResetPasswordToken = async function () {
 
   // update to database
   this.resetPasswordToken = token;
-
   const date = new Date();
   date.setMinutes(date.getMinutes() + 15);
   this.resetPasswordTokenExpiration = date;

@@ -17,7 +17,6 @@ exports.signin = async (req, res, next) => {
       });
     else {
       const credentials = await user.comparePassword(password);
-      console.log(credentials);
       if (credentials) {
         const token = await user.generateSignedToken();
 
@@ -62,7 +61,7 @@ exports.signup = async (req, res, next) => {
   }
 };
 
-exports.postForgotPassword = async (req, res, next) => {
+exports.forgotPassword = async (req, res, next) => {
   const { email } = req.body;
 
   // we must use the await to access the embed middleware function
@@ -75,14 +74,13 @@ exports.postForgotPassword = async (req, res, next) => {
         .json({ success: false, error: "Emaill cannot be found." });
     else {
       try {
-        // generate the password
+        // generate the password token and expiration
         user.generateResetPasswordToken();
         await user.save();
 
         // send email
         const resetLink =
           "https://comerce.netlify.app/reset/" + user.resetPasswordToken;
-
         const emailMsg = {
           to: user.email, // Change to your recipient
           from: process.env.MAILER_OWNER, // Change to your verified sender
@@ -97,7 +95,6 @@ exports.postForgotPassword = async (req, res, next) => {
         <p>Thanks,</p>
         <p>CoMerce team<p/>`,
         };
-
         await sendMailer(emailMsg);
 
         res
@@ -109,21 +106,17 @@ exports.postForgotPassword = async (req, res, next) => {
         user.resetPasswordTokenExpiration = undefined;
         await user.save();
 
-        res.status(500).send({
-          success: false,
-          error: "Email cannot be send successfully",
-        });
+        res
+          .status(500)
+          .send({ success: false, error: "Email cannot be send successfully" });
       }
     }
   } catch (error) {
-    res.status(500).send({
-      success: false,
-      error: error.message,
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 
-exports.putResetPassword = async (req, res, next) => {
+exports.resetPassword = async (req, res, next) => {
   const { password, email, resetPasswordToken } = req.body;
 
   try {
@@ -155,6 +148,4 @@ exports.putResetPassword = async (req, res, next) => {
       error: error.message,
     });
   }
-
-  res.send("reset");
 };
