@@ -121,10 +121,38 @@ exports.postForgotPassword = async (req, res, next) => {
   }
 };
 
-exports.postResetPassword = async (req, res, next) => {
+exports.putResetPassword = async (req, res, next) => {
   const { password, email, resetPasswordToken } = req.body;
 
-  console.log(req.body);
+  try {
+    const user = await User.findOne({
+      email,
+      resetPasswordToken,
+      resetPasswordTokenExpiration: { $gt: Date.now() },
+    }).exec();
+
+    if (user === null || user === undefined)
+      res.status(404).json({
+        success: false,
+        error: "Invalid rest password request or reset password token",
+      });
+
+    // update the password, which will trigger the embedded method
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordTokenExpiration = undefined;
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 
   res.send("reset");
 };
