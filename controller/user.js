@@ -80,7 +80,8 @@ exports.forgotPassword = async (req, res, next) => {
 
         // send email
         const resetLink =
-          "https://comerce.netlify.app/reset/" + user.resetPasswordToken;
+          "http://localhost:3000/password/reset?token=" +
+          user.resetPasswordToken;
         const emailMsg = {
           to: user.email, // Change to your recipient
           from: process.env.MAILER_OWNER, // Change to your verified sender
