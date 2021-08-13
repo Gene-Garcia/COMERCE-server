@@ -9,6 +9,7 @@ const {
   forgotPassword,
   resetPassword,
   changePassword,
+  index,
 } = require("../controller/user");
 
 // Routes
@@ -20,5 +21,8 @@ router.route("/password/forgot").post(forgotPassword);
 router.route("/password/reset").put(resetPassword);
 
 router.route("/password/change").post(authorize, changePassword);
+
+// pages
+router.route("/").get(authorize, index);
 
 module.exports = router;
