@@ -12,6 +12,11 @@ require("./config/database");
 
 // Middlewares
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+  next();
+});
 
 // Route Middleware
 app.use("/", require("./routes/index"));
