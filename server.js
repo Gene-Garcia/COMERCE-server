@@ -2,6 +2,9 @@ require("dotenv").config();
 
 // Packages
 const express = require("express");
+const cors = require("cors");
+const eJWT = require("express-jwt");
+const cookieParser = require("cookie-parser");
 
 // Init
 const app = express();
@@ -12,8 +15,10 @@ require("./config/database");
 
 // Middlewares
 app.use(express.json());
+app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Headers", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH");
   next();

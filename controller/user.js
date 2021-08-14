@@ -23,6 +23,14 @@ exports.signin = async (req, res, next) => {
         // remove password field from object
         // delete user.password;
 
+        // set cookie
+        // httpThe httpOnly: true setting means that the cookie
+        // can’t be read using JavaScript but can still be sent back to
+        // the server in HTTP requests. Without this setting, an XSS
+        // attack could use document.cookie to get a list of stored cookies
+        // and their values.
+        res.cookie("token", token, { httpOnly: true });
+
         res.status(200).json({
           success: true,
           user: { id: user._id, email: user.email },
