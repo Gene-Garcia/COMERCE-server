@@ -10,6 +10,7 @@ const {
   resetPassword,
   changePassword,
   index,
+  userValidator,
 } = require("../controller/user");
 
 // Routes
@@ -24,5 +25,9 @@ router.route("/password/change").post(authorize, changePassword);
 
 // pages
 router.route("/").get(authorize, index);
+
+// This page is solely for validating the authorization of the user based on cookies
+// this route will always be called by protected routes in frontend
+router.route("/validate").get(authorize, userValidator);
 
 module.exports = router;

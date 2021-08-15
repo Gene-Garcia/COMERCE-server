@@ -200,3 +200,11 @@ exports.index = async (req, res, next) => {
     .status(200)
     .json({ success: true, message: "Welcome " + req.user.username });
 };
+
+exports.userValidator = async (req, res, next) => {
+  res.status(200).json({
+    success: true,
+    authorized: true,
+    message: "This user is authorized",
+  });
+};

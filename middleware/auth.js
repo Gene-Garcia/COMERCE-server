@@ -17,20 +17,30 @@ exports.authorize = async (req, res, next) => {
   // use of cookies, the format is token={token}
   // req.header.cookie
 
-  // checks if there is proper header with the 'Bearer' keyword. Bearer of jason web token
-  let token;
-  const rawCookieToken = req.headers.cookie.split(";")[0];
-  if (
-    req.headers.cookie &&
-    rawCookieToken &&
-    rawCookieToken.startsWith("token")
-  ) {
-    // if there is header for authorization that contains 'Bearer'
-    token = rawCookieToken.split("=")[1]; // 0 is bearer, 1 is the token
+  // console.log("header " + req.headers.cookie);
+  let rawCookieToken;
+  if (!req.headers.cookie) {
+    // means no cookies was sent
+    return res
+      .status(401)
+      .json({ success: false, error: "Unathorized access" });
   }
+  // there was cookie, so split it
+  rawCookieToken = req.headers.cookie.split(";")[0];
 
-  // if no token found raise an error response
+  // console.log("rawCookieToken " + rawCookieToken);
+  let token;
+  if (!rawCookieToken) {
+    return res
+      .status(401)
+      .json({ success: false, error: "Unathorized access" });
+  }
+  // the rawCookieToken is token={valueToken}
+  token = rawCookieToken.split("=")[1];
+
+  // console.log("token " + token);
   if (!token) {
+    // if no token found raise an error response
     return res
       .status(401)
       .json({ success: false, error: "Unathorized access" });
