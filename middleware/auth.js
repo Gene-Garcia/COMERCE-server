@@ -11,17 +11,22 @@ const User = require("mongoose").model("User");
 // hence, at the bottom, we have next() which indicate to proceed to performn the controller. note that it takes no parameters
 // any error will be sent to req directly, or maybe create your own customer error handler and use next(error) which will handle the response for error
 exports.authorize = async (req, res, next) => {
-  // Header
-  // Bearer {token}
+  // use of LocalStorage, the format is usually Authorization: 'Bearer: {token}'
+  // req.headers.authorization
+
+  // use of cookies, the format is token={token}
+  // req.header.cookie
 
   // checks if there is proper header with the 'Bearer' keyword. Bearer of jason web token
   let token;
+  const rawCookieToken = req.headers.cookie.split(";")[0];
   if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
+    req.headers.cookie &&
+    rawCookieToken &&
+    rawCookieToken.startsWith("token")
   ) {
     // if there is header for authorization that contains 'Bearer'
-    token = req.headers.authorization.split(" ")[1]; // 0 is bearer, 1 is the token
+    token = rawCookieToken.split("=")[1]; // 0 is bearer, 1 is the token
   }
 
   // if no token found raise an error response

@@ -14,6 +14,7 @@ const PORT = process.env.PORT;
 require("./config/database");
 
 // Middlewares
+app.use(cookieParser());
 app.use(express.json());
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use((req, res, next) => {
