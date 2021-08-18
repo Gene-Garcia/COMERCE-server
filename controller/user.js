@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 // Models
 const User = require("mongoose").model("User");
 
@@ -29,7 +31,10 @@ exports.signin = async (req, res, next) => {
         // the server in HTTP requests. Without this setting, an XSS
         // attack could use document.cookie to get a list of stored cookies
         // and their values.
-        res.cookie("token", token, { httpOnly: true });
+        res.cookie("token", token, {
+          httpOnly: true,
+          maxAge: process.env.JWT_EXPIRATION,
+        });
 
         res.status(200).json({
           success: true,
