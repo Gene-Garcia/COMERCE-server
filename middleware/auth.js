@@ -1,5 +1,7 @@
 // AUTHENTICATION & AUTHORIZATION
 
+require("dotenv").config();
+
 // Packages
 const jwt = require("jsonwebtoken");
 
@@ -14,29 +16,11 @@ exports.authorize = async (req, res, next) => {
   // use of LocalStorage, the format is usually Authorization: 'Bearer: {token}'
   // req.headers.authorization
 
-  // use of cookies, the format is token={token}
-  // req.header.cookie
+  // use of cookies, the format is {tokenName:{token}, tokenName:{}}
+  // req.cookies
 
-  // console.log("header " + req.headers.cookie);
-  let rawCookieToken;
-  if (!req.headers.cookie) {
-    // means no cookies was sent
-    return res
-      .status(401)
-      .json({ success: false, error: "Unathorized access" });
-  }
-  // there was cookie, so split it
-  rawCookieToken = req.headers.cookie.split(";")[0];
-
-  // console.log("rawCookieToken " + rawCookieToken);
-  let token;
-  if (!rawCookieToken) {
-    return res
-      .status(401)
-      .json({ success: false, error: "Unathorized access" });
-  }
-  // the rawCookieToken is token={valueToken}
-  token = rawCookieToken.split("=")[1];
+  // console.log(req.cookies[process.env.JWT_ID]);
+  const token = req.cookies[process.env.JWT_KEY_IDENTIFIER];
 
   // console.log("token " + token);
   if (!token) {

@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const eJWT = require("express-jwt");
 const cookieParser = require("cookie-parser");
+const csrf = require("csurf");
 
 // Init
 const app = express();
@@ -14,8 +15,9 @@ const PORT = process.env.PORT;
 require("./config/database");
 
 // Middlewares
-app.use(cookieParser());
 app.use(express.json());
+app.use(cookieParser());
+app.use(csrf({ cookie: true }));
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
