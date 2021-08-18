@@ -12,7 +12,7 @@ router.post("/signin", signin);
 router.get("/cs", (req, res) => {
   const csrf = req.csrfToken();
 
-  console.log(csrf);
+  // console.log(csrf);
   // res.cookie("csrfcmrc", csrf);
   res.status(200).json({ success: true, csrfToken: csrf });
 });
