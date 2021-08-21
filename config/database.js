@@ -13,3 +13,5 @@ mongoose.set("useCreateIndex", true);
 
 // Initiate Models
 require("../models/userModel");
+require("../models/inventoryModel");
+require("../models/productModel");
