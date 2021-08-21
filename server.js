@@ -30,6 +30,7 @@ app.use((req, res, next) => {
 // Route Middleware
 app.use("/", require("./routes/index"));
 app.use("/user", require("./routes/user"));
+app.use("/product", require("./routes/product"));
 app.use("/test", require("./routes/test"));
 
 // Listener
