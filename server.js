@@ -28,9 +28,9 @@ app.use((req, res, next) => {
 });
 
 // Route Middleware
-app.use("/", require("./routes/index"));
-app.use("/user", require("./routes/user"));
-app.use("/product", require("./routes/product"));
+app.use("/api/", require("./routes/index"));
+app.use("/api/user", require("./routes/user"));
+app.use("/api/product", require("./routes/product"));
 app.use("/test", require("./routes/test"));
 
 // Listener
