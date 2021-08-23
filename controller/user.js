@@ -65,14 +65,15 @@ exports.signup = async (req, res, next) => {
       res
         .status(500)
         .json({ success: false, error: "Email is already taken." });
+    else {
+      const newUser = await User.create({ email, password });
 
-    const newUser = await User.create({ email, password });
-
-    // The logic, after registration, go back to login, so no need, yet, to send token
-    res.status(200).json({
-      success: true,
-      user: { id: newUser._id, email: newUser.email },
-    });
+      // The logic, after registration, go back to login, so no need, yet, to send token
+      res.status(200).json({
+        success: true,
+        user: { id: newUser._id, email: newUser.email },
+      });
+    }
   } catch (error) {
     res.status(500).json({
       success: false,
