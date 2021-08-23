@@ -189,7 +189,9 @@ exports.resetPassword = async (req, res, next) => {
 };
 
 exports.changePassword = async (req, res, next) => {
-  const { email, newPassword, oldPassword } = req.body;
+  const { newPassword, oldPassword } = req.body;
+
+  email = req.user.email;
 
   try {
     // req.user does not have the password field, hence, we cannot use comparePassword
@@ -203,21 +205,24 @@ exports.changePassword = async (req, res, next) => {
       res
         .status(404)
         .json({ success: false, error: "Unable to find this user" });
-
-    // We can now use compare password
-    const matchOldPassword = await user.comparePassword(oldPassword);
-
-    if (!matchOldPassword)
-      res.status(404).json({ success: false, error: "Incorrect old password" });
     else {
-      // change and save the password in db
-      user.password = newPassword;
-      console.log(user);
-      await user.save();
+      // We can now use compare password
+      const matchOldPassword = await user.comparePassword(oldPassword);
 
-      res
-        .status(200)
-        .json({ success: true, message: "Password changed successfully" });
+      if (!matchOldPassword)
+        res
+          .status(404)
+          .json({ success: false, error: "Incorrect old password" });
+      else {
+        // change and save the password in db
+        user.password = newPassword;
+        console.log(user);
+        await user.save();
+
+        res
+          .status(200)
+          .json({ success: true, message: "Password changed successfully" });
+      }
     }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
