@@ -14,6 +14,9 @@ const userSchema = mongoose.Schema({
       "Invalid Email format",
     ],
   },
+  username: {
+    type: String,
+  },
   password: {
     type: String,
     required: "Password is required",

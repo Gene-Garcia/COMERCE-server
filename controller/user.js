@@ -56,7 +56,7 @@ exports.signin = async (req, res, next) => {
 };
 
 exports.signup = async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, username, password } = req.body;
 
   try {
     // check if existing
@@ -66,12 +66,16 @@ exports.signup = async (req, res, next) => {
         .status(500)
         .json({ success: false, error: "Email is already taken." });
     else {
-      const newUser = await User.create({ email, password });
+      const newUser = await User.create({ email, username, password });
 
       // The logic, after registration, go back to login, so no need, yet, to send token
       res.status(200).json({
         success: true,
-        user: { id: newUser._id, email: newUser.email },
+        user: {
+          id: newUser._id,
+          email: newUser.email,
+          username: newUser.username,
+        },
       });
     }
   } catch (error) {
@@ -80,6 +84,14 @@ exports.signup = async (req, res, next) => {
       error: error.message,
     });
   }
+};
+
+exports.signout = async (req, res, next) => {
+  res.cookie(process.env.JWT_KEY_IDENTIFIER, "", {
+    httpOnly: true,
+    maxAge: Date.now(),
+  });
+  res.status(200).json({ success: true });
 };
 
 exports.forgotPassword = async (req, res, next) => {

@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 });
 
 // Route Middleware
-app.use("/api/", require("./routes/index"));
+app.use("/api", require("./routes/index"));
 app.use("/api/user", require("./routes/user"));
 app.use("/api/product", require("./routes/product"));
 app.use("/test", require("./routes/test"));

@@ -2,11 +2,17 @@ require("dotenv").config();
 
 const router = require("express").Router();
 
-const { signin, signup } = require("../controller/user");
+// midlleware
+const { authorize } = require("../middleware/auth");
+
+// Controller
+const { signin, signup, signout } = require("../controller/user");
 
 router.post("/signup", signup);
 
 router.post("/signin", signin);
+
+router.get("/signout", authorize, signout);
 
 // security csurf
 router.get("/cs", (req, res) => {
