@@ -59,15 +59,22 @@ exports.signup = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
+    // check if existing
+    const check = await User.findOne({ email }).exec();
+    if (check)
+      res
+        .status(500)
+        .json({ success: false, error: "Email is already taken." });
+
     const newUser = await User.create({ email, password });
 
     // The logic, after registration, go back to login, so no need, yet, to send token
-    res.status(200).send({
+    res.status(200).json({
       success: true,
       user: { id: newUser._id, email: newUser.email },
     });
   } catch (error) {
-    res.status(500).send({
+    res.status(500).json({
       success: false,
       error: error.message,
     });
