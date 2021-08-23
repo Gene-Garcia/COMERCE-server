@@ -38,7 +38,11 @@ exports.signin = async (req, res, next) => {
 
         res.status(200).json({
           success: true,
-          user: { id: user._id, email: user.email },
+          user: {
+            id: user._id,
+            email: user.email,
+            username: user.username,
+          },
           token,
         });
       } else
