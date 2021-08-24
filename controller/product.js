@@ -7,7 +7,10 @@ const Inventory = require("mongoose").model("Inventory");
 exports.getAvailableProducts = async (req, res, next) => {
   // no auth
   try {
-    const products = await Product.find()
+    const products = await Product.find(
+      {},
+      "rating _inventory item imageAddress retailPrice description"
+    )
       .populate({ path: "_inventory", match: { onHand: { $gt: 0 } } })
       .exec();
 
@@ -26,10 +29,23 @@ exports.createProductAndInventory = async (req, res, next) => {
   const id = req.body.userId;
 
   // product model
-  const { item, wholesaleCap, wholesalePrice, retailPrice, description } =
-    req.body;
+  const {
+    item,
+    wholesaleCap,
+    wholesalePrice,
+    retailPrice,
+    description,
+    imageAddress,
+  } = req.body;
   // checks empty values
-  if (!item || !wholesaleCap || !wholesalePrice || !retailPrice || !id)
+  if (
+    !item ||
+    !wholesaleCap ||
+    !wholesalePrice ||
+    !retailPrice ||
+    !imageAddress ||
+    !id
+  )
     res.status(500).json({ success: false, error: "Incomplete data" });
 
   // inventory model
@@ -43,6 +59,7 @@ exports.createProductAndInventory = async (req, res, next) => {
       _owner: id,
       item,
       wholesaleCap,
+      imageAddress,
       wholesalePrice,
       retailPrice,
       description,
