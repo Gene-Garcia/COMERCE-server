@@ -15,3 +15,4 @@ mongoose.set("useCreateIndex", true);
 require("../models/userModel");
 require("../models/inventoryModel");
 require("../models/productModel");
+require("../models/cartModel");

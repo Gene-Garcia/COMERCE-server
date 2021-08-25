@@ -1,5 +1,6 @@
 // Package
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -14,20 +15,31 @@ const userSchema = mongoose.Schema({
       "Invalid Email format",
     ],
   },
+
   username: {
     type: String,
   },
+
   password: {
     type: String,
     required: "Password is required",
     select: false,
   },
+
   resetPasswordToken: {
     type: String,
   },
+
   resetPasswordTokenExpiration: {
     type: Date,
   },
+
+  _cart: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Cart",
+    },
+  ],
 });
 
 // Middlewares
