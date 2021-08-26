@@ -8,7 +8,7 @@ const { authorize } = require("../middleware/auth");
 const { addToCart } = require("../controller/cart");
 
 // route
-// router.patch("/add", authorize, addToCart);
-router.patch("/add", addToCart);
+router.patch("/add", authorize, addToCart);
+// router.patch("/add", addToCart);
 
 module.exports = router;
