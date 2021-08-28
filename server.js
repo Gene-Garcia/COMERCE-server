@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT;
 const isProduction = process.env.PRODUCTION || false;
 conts = origin = isProduction
-  ? "https://personal-537e8.web.app/"
+  ? "https://co-merce.netlify.app"
   : "http://localhost:3000";
 console.log(origin);
 
@@ -38,10 +38,6 @@ app.use((req, res, next) => {
     "Origin, X-Requested-With, Content-Type, Accept"
   );
   res.setHeader("Access-Control-Allow-Credentials", true);
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
   next();
 });
 
