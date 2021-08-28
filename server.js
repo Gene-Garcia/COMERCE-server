@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT;
 const isProduction = process.env.PRODUCTION || false;
 conts = origin = isProduction
-  ? "https://co-merce.netlify.app"
+  ? "https://personal-537e8.web.app/"
   : "http://localhost:3000";
 console.log(origin);
 
