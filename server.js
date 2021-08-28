@@ -24,12 +24,12 @@ require("./config/database");
 app.use(express.json());
 app.use(cookieParser());
 app.use(csrf({ cookie: true }));
-app.use(
-  cors({
-    credentials: true,
-    origin: origin,
-  })
-);
+// app.use(
+//   cors({
+//     credentials: true,
+//     origin: origin,
+//   })
+// );
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", origin);
 
