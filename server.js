@@ -20,16 +20,16 @@ console.log(origin);
 require("./config/database");
 
 // Middlewares
-// app.set("trust proxy", 1); // ref: https://stackoverflow.com/questions/66503751/cross-domain-session-cookie-express-api-on-heroku-react-app-on-netlify
+app.set("trust proxy", 1); // ref: https://stackoverflow.com/questions/66503751/cross-domain-session-cookie-express-api-on-heroku-react-app-on-netlify
 app.use(express.json());
 app.use(cookieParser());
 app.use(csrf({ cookie: true }));
-// app.use(
-//   cors({
-//     credentials: true,
-//     origin: origin,
-//   })
-// );
+app.use(
+  cors({
+    credentials: true,
+    origin: origin,
+  })
+);
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH");
