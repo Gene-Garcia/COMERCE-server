@@ -20,7 +20,7 @@ router.get("/cs", (req, res) => {
 
   // console.log(csrf);
   // res.cookie("csrfcmrc", csrf);
-
+  res.cookie("XSRF-TOKEN", csrf, { httpOnly: true });
   res.status(200).json({ success: true, csrfToken: csrf });
 });
 
