@@ -20,7 +20,9 @@ router.get("/cs", (req, res) => {
 
   // console.log(csrf);
   // res.cookie("csrfcmrc", csrf);
-  res.status(200).json({ success: true, csrfToken: csrf });
+  res.cookie("XSRF-TOKEN", req.csrfToken());
+
+  res.status(200).json({ success: true });
 });
 
 module.exports = router;
