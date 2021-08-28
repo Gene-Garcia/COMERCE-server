@@ -11,6 +11,10 @@ const csrf = require("csurf");
 const app = express();
 const PORT = process.env.PORT;
 const isProduction = process.env.PRODUCTION || false;
+conts = origin = isProduction
+  ? "https://co-merce.netlify.app"
+  : "http://localhost:3000";
+console.log(origin);
 
 // Database
 require("./config/database");
@@ -23,16 +27,11 @@ app.use(csrf({ cookie: true }));
 app.use(
   cors({
     credentials: true,
-    origin: isProduction
-      ? "https://co-merce.netlify.app/"
-      : "http://localhost:3000",
+    origin: origin,
   })
 );
 app.use((req, res, next) => {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    isProduction ? "https://co-merce.netlify.app/" : "http://localhost:3000"
-  );
+  res.setHeader("Access-Control-Allow-Origin", origin);
 
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Headers", "*");

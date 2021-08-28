@@ -4,7 +4,6 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@personal-cluster.sofzm.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
-console.log(uri);
 
 // Connect, async
 (async () => {
