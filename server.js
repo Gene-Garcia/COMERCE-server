@@ -3,7 +3,6 @@ require("dotenv").config();
 // Packages
 const express = require("express");
 const cors = require("cors");
-const eJWT = require("express-jwt");
 const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
 
