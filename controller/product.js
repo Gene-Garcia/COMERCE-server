@@ -90,6 +90,27 @@ exports.createProductAndInventory = async (req, res, next) => {
   }
 };
 
+// get product with product id
+exports.getProduct = async (req, res, next) => {
+  const productId = req.params.pId;
+
+  if (!productId)
+    res.status(404).json({ success: false, error: "Incomplete data." });
+  else {
+    try {
+      const product = await Product.findById(productId)
+        .populate("_inventory")
+        .exec();
+
+      if (!product)
+        res.status(404).json({ success: false, error: "Product not found." });
+      else res.status(200).json({ success: true, product });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+};
+
 // returns product id
 exports.createProduct = async (req, res, next) => {};
 
