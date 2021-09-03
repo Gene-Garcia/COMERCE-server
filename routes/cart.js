@@ -5,10 +5,13 @@ const router = require("express").Router();
 const { authorize } = require("../middleware/auth");
 
 // controllers
-const { addToCart } = require("../controller/cart");
+const { addToCart, getNumberOfCartItem } = require("../controller/cart");
 
 // route
 router.patch("/add", authorize, addToCart);
 // router.patch("/add", addToCart);
+
+// router.get('/count', authorize, getNumberOfCartItem)
+router.get("/count", getNumberOfCartItem);
 
 module.exports = router;
