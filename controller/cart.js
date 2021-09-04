@@ -80,8 +80,8 @@ exports.addToCart = async (req, res, next) => {
 
 // get number of items in user's cart
 exports.getNumberOfCartItem = async (req, res, next) => {
-  // const userId = req.user._id
-  const userId = "6127b3b64dfdba29d40a561b";
+  const userId = req.user._id;
+  // const userId = "6127b3b64dfdba29d40a561b";
 
   try {
     const user = await User.findById(userId).populate("_cart").exec();
@@ -92,7 +92,7 @@ exports.getNumberOfCartItem = async (req, res, next) => {
       let count = 0;
       if (user._cart) user._cart.map((e) => (count += parseInt(e.quantity)));
 
-      res.status(200).json({ success: true, user, count });
+      res.status(200).json({ success: true, count });
     }
   } catch (error) {
     res.status(500).json({

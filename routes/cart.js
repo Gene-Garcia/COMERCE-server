@@ -11,7 +11,7 @@ const { addToCart, getNumberOfCartItem } = require("../controller/cart");
 router.patch("/add", authorize, addToCart);
 // router.patch("/add", addToCart);
 
-// router.get('/count', authorize, getNumberOfCartItem)
-router.get("/count", getNumberOfCartItem);
+router.get("/count", authorize, getNumberOfCartItem);
+// router.get("/count", getNumberOfCartItem);
 
 module.exports = router;
