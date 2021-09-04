@@ -1,12 +1,19 @@
+// Custom error messages
+const { error } = require("../config/errorMessages");
+
 // Models
-const User = require("mongoose").model("User");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
 
-// get all products that has ANY inventory record that have more than 1 onHand product
+/*
+ * GET Method
+ *
+ * Gets all the available items record in the Product model.
+ * However, the product must have an inventory.onHand value of more than 0.
+ */
 exports.getAvailableProducts = async (req, res, next) => {
-  // no auth
   try {
+    // filering the populate method using {$gt} still includes 'that' product, but will return a null inventory
     const products = await Product.find(
       {},
       "rating _inventory item imageAddress retailPrice description"
@@ -14,18 +21,27 @@ exports.getAvailableProducts = async (req, res, next) => {
       .populate({ path: "_inventory", match: { onHand: { $gt: 0 } } })
       .exec();
 
-    // there will be products that null inventory, which means they have 0 or less than onHand quantity
+    // filters the products object to only those have an _inventory record.
+    // products will have a null _inventory because they were filtered using {$gt}
     const available = products.filter((item) => item._inventory.length > 0);
 
-    res.status(200).json({ succes: true, available });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(200).json({ available });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };
 
 // adds both a product and an inventory record
+/*
+ * POST method
+ *
+ * A convenience method that is mostly used in development to add product and
+ * its inventory in one request.
+ *
+ * Only used in development because views for adding product and inventory both
+ * in the frontend and backend is not yet implemented.
+ */
 exports.createProductAndInventory = async (req, res, next) => {
-  // const id = req.user._id
   const id = req.body.userId;
 
   // product model
@@ -46,12 +62,12 @@ exports.createProductAndInventory = async (req, res, next) => {
     !imageAddress ||
     !id
   )
-    res.status(500).json({ success: false, error: "Incomplete data" });
+    res.status(406).json({ error: error.incompleteData });
 
   // inventory model
   const { quantity, onHand } = req.body;
   if (!quantity || !onHand)
-    res.status(500).json({ success: false, error: "Incomplete data" });
+    res.status(406).json({ error: error.incompleteData });
 
   try {
     // create product
@@ -85,28 +101,33 @@ exports.createProductAndInventory = async (req, res, next) => {
       product,
       inventory,
     });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };
 
-// get product with product id
+/*
+ * GET Method
+ *
+ * Retrieves a product record from the database using the paramater
+ * that contains the product's id.
+ *
+ * Primarily used for displaying an item in the client.
+ */
 exports.getProduct = async (req, res, next) => {
   const productId = req.params.pId;
 
-  if (!productId)
-    res.status(404).json({ success: false, error: "Incomplete data." });
+  if (!productId) res.status(406).json({ error: error.incompleteData });
   else {
     try {
       const product = await Product.findById(productId)
         .populate("_inventory")
         .exec();
 
-      if (!product)
-        res.status(404).json({ success: false, error: "Product not found." });
-      else res.status(200).json({ success: true, product });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      if (!product) res.status(404).json({ error: error.productNotFound });
+      else res.status(200).json({ product });
+    } catch (e) {
+      res.status(500).json({ error: error.serverError });
     }
   }
 };

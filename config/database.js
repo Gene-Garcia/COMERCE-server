@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@personal-cluster.sofzm.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 
-// Connect, async
+/* Asyncly connect to database to stop the app to create requests to an unconnected database */
 (async () => {
   try {
     await mongoose
@@ -27,6 +27,7 @@ const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}
   }
 })();
 
+/* Responsible to fix any deprecation warning of Mongoose raised in the terminal */
 mongoose.set("useCreateIndex", true);
 
 // Initiate Models

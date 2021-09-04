@@ -1,59 +1,56 @@
+// Custom error messages
+const { error } = require("../config/errorMessages");
+
 // Model
 const User = require("mongoose").model("User");
 const Product = require("mongoose").model("Product");
 const Cart = require("mongoose").model("Cart");
 
-// add to cart, patch
+/*
+ * PATCH Method
+ *
+ * Updates the current cart of the user.
+ * Regardless if:
+ *    There is not cart record
+ *    The product is the first item in the cart
+ *    The product is already in the cart, it increments by one
+ */
 exports.addToCart = async (req, res, next) => {
-  // userid, productid
-
-  //const userId = req.user._id;
-  console.log(req.user);
   const userId = req.user._id;
   const productId = req.body.productId;
 
   if (!userId || !productId)
-    res.status(404).json({ success: false, error: "Incomplete data." });
+    res.status(406).json({ error: error.incompleteData });
   else {
     try {
       const user = await User.findById(userId).populate("_cart").exec();
       const product = await Product.findById(productId).exec();
 
-      if (!user)
-        res.status(404).json({ success: false, error: "User not found." });
-      else if (!product)
-        res.status(404).json({ success: false, error: "Product not found." });
+      if (!user) res.status(404).json({ error: error.userNotFound });
+      else if (!product) res.status(404).json({ error: error.productNotFound });
       else {
         // temporarily create a card record
+        // will be saved later on, only when needed to save memory.
         const cart = Cart({
           _product: productId,
           quantity: 1,
           dateAdded: Date.now(),
         });
 
-        // check if there is cart record
-        // // then check if this product is already there
-        // // // then just update it's quantity and date
-        // // else
-        // // // create a cart record, and save it to user._cart
-        // else
-        // // create a cart record and save it to user._cart
-
+        // checks for cart instace or record in the user record
         if (user._cart && user._cart.length > 0) {
+          // checks if the product is already in the user's cart
           const found = user._cart.find((d) => d._product == productId);
 
           if (found) {
-            // find that cart record to update it
+            // finds the cart record to update it
             const thisCart = await Cart.findById(found._id).exec();
 
-            if (!thisCart)
-              res
-                .status(500)
-                .json({ success: false, error: "Something went wrong." });
+            // there was a record of an id in the user's _cart, but the Cart model does not have id
+            if (!thisCart) res.status(500).json({ error: error.serverError });
             else {
               thisCart.quantity += 1;
               thisCart.dateAdded = Date.now();
-
               await thisCart.save();
             }
           } else {
@@ -67,37 +64,38 @@ exports.addToCart = async (req, res, next) => {
           await user.save();
         }
 
-        res.status(201).json({ success: true, user });
+        // VERIFY IF NECESSARY TO SEND USER
+        res.status(201).json({ user });
       }
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      });
+    } catch (e) {
+      res.status(500).json({ error: error.serverError });
     }
   }
 };
 
-// get number of items in user's cart
+/*
+ * GET Method
+ *
+ * Retrieves the total number of items, n = n + x.quantiy.
+ * Where x is the cart item, and n is running total of items
+ *
+ * Only sends the count if a user found through req.user, which
+ * is populated by the authorize middleware using JWT decode
+ */
 exports.getNumberOfCartItem = async (req, res, next) => {
   const userId = req.user._id;
-  // const userId = "6127b3b64dfdba29d40a561b";
 
   try {
     const user = await User.findById(userId).populate("_cart").exec();
 
-    if (!user)
-      res.status(404).json({ success: false, error: "User cannot be found." });
+    if (!user) res.status(404).json({ error: error.userNotFound });
     else {
       let count = 0;
       if (user._cart) user._cart.map((e) => (count += parseInt(e.quantity)));
 
-      res.status(200).json({ success: true, count });
+      res.status(200).json({ count });
     }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };

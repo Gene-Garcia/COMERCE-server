@@ -1,49 +1,49 @@
-// AUTHENTICATION & AUTHORIZATION
-
-require("dotenv").config();
-
 // Packages
+require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
 // Model
 const User = require("mongoose").model("User");
 
-// Protector Function to route
-// this middleware function will be placed in the request method before the controller
-// hence, at the bottom, we have next() which indicate to proceed to performn the controller. note that it takes no parameters
-// any error will be sent to req directly, or maybe create your own customer error handler and use next(error) which will handle the response for error
+/*
+ * A middlware function that will authorize a request using the JWT which is found in request headers.
+ * The request header JWT is passed by the server on login
+ *
+ * This function decodes the JWT, which contains the user id.
+ * The id then will be used to find the user in the database.
+ *
+ * Instances when:
+ *     No JWT was found in the request
+ *     The found token, when decoded, does not constitutes to any user id in the database
+ * will result to http status code of 401, and 404.
+ *
+ * A successful authorization will lead to setting the 'user' variable in the request format.
+ * The next() will now then proceed to the 'controller' set. Example, router.METHOD(authorize, 'controller').
+ * Otherwise, just sends the response.
+ */
 exports.authorize = async (req, res, next) => {
-  // use of LocalStorage, the format is usually Authorization: 'Bearer: {token}'
-  // req.headers.authorization
-
-  // use of cookies, the format is {tokenName:{token}, tokenName:{}}
-  // req.cookies
-
-  // console.log(req.cookies[process.env.JWT_ID]);
   const token = req.cookies[process.env.JWT_KEY_IDENTIFIER];
-
-  // console.log("token " + token);
   if (!token) {
-    // if no token found raise an error response
+    // No JWT token was found in the headers or in the request origin's cookies
     return res
       .status(401)
       .json({ success: false, error: "Unathorized access" });
   }
 
-  // reaching here indicates that there is a token
   try {
-    // decode the token to get the embedded data which is the id of the user
-    const decode = jwt.verify(token, process.env.JWT_KEY);
-    const userId = decode.id;
+    // Decode the token to get the embedded data which is the id of the user
+    const decoded = jwt.verify(token, process.env.JWT_KEY);
+    const userId = decoded.id;
 
-    // find user record
+    // Find user in the database
     const user = await User.findById(userId).exec();
 
+    // The user id decoded from the JWT does not constitute to any user in the database
     if (user === null || user === undefined)
       return res.status(404).json({ success: false, error: "User not found" });
 
-    // assigned the user to the request
-    // then allow express to proceed to the controller of the route
+    // Set the user to the request.user
+    // Then, allow express to proceed to the controller of the route
     req.user = user;
     next();
   } catch (error) {
