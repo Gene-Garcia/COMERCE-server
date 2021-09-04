@@ -42,8 +42,16 @@ const userSchema = mongoose.Schema({
   ],
 });
 
-// Middlewares
-// Hash password before saving to database
+/*
+ * Plugin Function to 'User'
+ *
+ * The parameter 'save' indicates that this function will automatically be
+ * triggered to hash password before saving to database.
+ *
+ * The plugin also first checks if the save event included the change of password.
+ * This allows the app to not rehash the password unecessarily; saves resources.
+ *
+ */
 userSchema.pre("save", async function (next) {
   // Check if there was a modification in the password field to avoid unecessary hashing
   if (!this.isModified("password")) {
@@ -55,13 +63,28 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, saltRounds);
 });
 
-// Helper function to compare input and database stored password
+/*
+ * Plugin Function to 'User'
+ *
+ * This function can be called by a user instance, not by a document which is accessed
+ * through callback execute query of mongoose. That is, we must use 'const user = await User.find(...).exec()'
+ *
+ * This is a necessary function because the stored password is hashed, hence, we cannot
+ * easily compare unhashed text with a hashed text.
+ * We now rely with bcrypt's built-in compare function.
+ */
 userSchema.methods.comparePassword = async function (inputPassword) {
   const result = await bcrypt.compare(inputPassword, this.password);
   return result;
 };
 
-// Helper function to generate a signed JWT for the current/this user
+/*
+ * Plugin Function to 'User'
+ *
+ * This plugin function is used when a user logs in. It returns the valid
+ * encoded JWT which has the user's id
+ *
+ */
 userSchema.methods.generateSignedToken = async function () {
   const privateKey = process.env.JWT_KEY;
   const expireTime = process.env.JWT_EXPIRATION;
@@ -72,7 +95,17 @@ userSchema.methods.generateSignedToken = async function () {
   return token;
 };
 
-// Helper function to create, save to database, and return a reset password token
+/*
+ * Plugin Function to 'User'
+ *
+ * This plugin function is responsible for generating the reset password token which
+ * will be sent to the email.
+ *
+ * Note that the reset token is stored in the database, however, to enforce the expiration
+ * and validity of the JWT, token expiration date-time is also stored in the database.
+ * It will then be used to check and not only the reset token.
+ *
+ */
 userSchema.methods.generateResetPasswordToken = async function () {
   const token = await crypto.randomBytes(48).toString("hex");
 
