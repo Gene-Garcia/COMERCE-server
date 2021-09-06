@@ -105,7 +105,8 @@ exports.getNumberOfCartItem = async (req, res, next) => {
  *
  */
 exports.getUserCart = async (req, res, next) => {
-  const userId = req.user._id;
+  // const userId = req.user._id;
+  const userId = "6127b3b64dfdba29d40a561b";
 
   try {
     /*
@@ -125,7 +126,7 @@ exports.getUserCart = async (req, res, next) => {
      */
     const cart = await User.findById(userId, "_cart").populate({
       path: "_cart",
-      select: "_product quantity",
+      select: "_product quantity -_id",
 
       populate: {
         path: "_product",
@@ -133,7 +134,7 @@ exports.getUserCart = async (req, res, next) => {
 
         populate: {
           path: "_inventory",
-          select: "onHand",
+          select: "onHand -_id",
           match: { onHand: { $gt: 0 } },
         },
       },
@@ -142,9 +143,21 @@ exports.getUserCart = async (req, res, next) => {
     // filter those that have no inventory
     const filtered = cart._cart.filter((e) => e._product._inventory.length > 0);
 
-    res.status(200).json({ cart: filtered });
+    // flatten object
+    const flattened = filtered.map((e) => {
+      return {
+        productId: e._product._id,
+        item: e._product.item,
+        retailPrice: e._product.retailPrice,
+        image: e._product.imageAddress,
+        quantity: e.quantity,
+        // inventories: _product._inventory
+      };
+    });
+
+    res.status(200).json({ cart: flattened });
   } catch (e) {
-    console.log(e.message);
+    console.log(e);
     res.status(500).json({ error: error.serverError });
   }
 };
