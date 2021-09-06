@@ -105,8 +105,8 @@ exports.getNumberOfCartItem = async (req, res, next) => {
  *
  */
 exports.getUserCart = async (req, res, next) => {
-  // const userId = req.user._id;
-  const userId = "6127b3b64dfdba29d40a561b";
+  const userId = req.user._id;
+  // const userId = "6127b3b64dfdba29d40a561b";
 
   try {
     /*
