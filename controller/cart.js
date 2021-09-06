@@ -7,7 +7,7 @@ const Product = require("mongoose").model("Product");
 const Cart = require("mongoose").model("Cart");
 
 /*
- * PATCH Method
+ * PATCH Method, Authorized
  *
  * Updates the current cart of the user.
  * Regardless if:
@@ -74,7 +74,7 @@ exports.addToCart = async (req, res, next) => {
 };
 
 /*
- * GET Method
+ * GET Method, Authorized
  *
  * Retrieves the total number of items, n = n + x.quantiy.
  * Where x is the cart item, and n is running total of items
@@ -96,6 +96,55 @@ exports.getNumberOfCartItem = async (req, res, next) => {
       res.status(200).json({ count });
     }
   } catch (e) {
+    res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET Method, Authorized
+ *
+ */
+exports.getUserCart = async (req, res, next) => {
+  const userId = req.user._id;
+
+  try {
+    /*
+     * this cart is nested results of references
+     * _cart: [
+     *   {
+     *     _product: {
+     *       _inventory: [] or [{}, {}, {}]
+     *     }
+     *   },
+     *
+     *   {...},
+     *
+     *   ...
+     * ]
+     *
+     */
+    const cart = await User.findById(userId, "_cart").populate({
+      path: "_cart",
+      select: "_product quantity",
+
+      populate: {
+        path: "_product",
+        select: "item imageAddress retailPrice",
+
+        populate: {
+          path: "_inventory",
+          select: "onHand",
+          match: { onHand: { $gt: 0 } },
+        },
+      },
+    });
+
+    // filter those that have no inventory
+    const filtered = cart._cart.filter((e) => e._product._inventory.length > 0);
+
+    res.status(200).json({ cart: filtered });
+  } catch (e) {
+    console.log(e.message);
     res.status(500).json({ error: error.serverError });
   }
 };
