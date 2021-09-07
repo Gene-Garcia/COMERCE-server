@@ -42,8 +42,8 @@ exports.getAvailableProducts = async (req, res, next) => {
  * in the frontend and backend is not yet implemented.
  */
 exports.createProductAndInventory = async (req, res, next) => {
-  const id = req.body.userId;
-
+  // const id = req.body.userId;
+  const id = "6127b3b64dfdba29d40a561b";
   // product model
   const {
     item,
