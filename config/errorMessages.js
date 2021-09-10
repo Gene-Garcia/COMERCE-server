@@ -11,6 +11,12 @@ const error = {
   emailNotFound:
     "This email seems to be not in our account records. Please enter an email that you have used to login to COMERCE.",
 
+  cartNotFound:
+    "Your cart was not found in our database. Try again later. If error persist please contact our customer support.",
+
+  insufficientProductQuantity:
+    "We apologize but this product seems to be removed or out stock. You may check out our other products, thank you.",
+
   serverError:
     "We're very sorry but something went wrong in our system. Please try again. If errors persist please contact our customer support.",
 
