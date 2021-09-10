@@ -16,6 +16,6 @@ const {
 router.patch("/add", authorize, addToCart);
 router.get("/count", authorize, getNumberOfCartItem);
 router.get("/user", authorize, getUserCart);
-router.get("/product", authorize, getCartItem);
+router.get("/product/:productId", authorize, getCartItem);
 
 module.exports = router;

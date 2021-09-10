@@ -175,10 +175,10 @@ exports.getCartItem = async (req, res, next) => {
   try {
     const userId = req.user._id;
     // const userId = "6127b3b64dfdba29d40a561b";
-    const productId = req.body.productId;
+    const productId = req.params.productId;
     // const productId = "6127b3c54dfdba29d40a561d";
 
-    if (!userId || !product)
+    if (!userId || !productId)
       res.status(406).json({ error: error.incompleteData });
     else {
       /* Checks if the user exists */
@@ -205,20 +205,24 @@ exports.getCartItem = async (req, res, next) => {
           res.status(404).json({ error: error.insufficientProductQuantity });
         else {
           // modify the data to be sent
-          const productData = {
-            productId: product._id,
-            item: product.item,
-            retailPrice: product.retailPrice,
-            image: product.imageAddress,
-            quantity: 1,
-            checkout: true, // the propert used in the frontend to check if its for checkout
-          };
+          // the data is set to be an Array because the ShoppingCartReducer assumes an iteratable value
+          const productData = [
+            {
+              productId: product._id,
+              item: product.item,
+              retailPrice: product.retailPrice,
+              image: product.imageAddress,
+              quantity: 1,
+              checkout: true, // the propert used in the frontend to check if its for checkout
+            },
+          ];
 
           res.status(200).json({ product: productData });
         }
       }
     }
   } catch (e) {
+    console.log(e);
     res.status(500).json({ error: error.serverError });
   }
 };
