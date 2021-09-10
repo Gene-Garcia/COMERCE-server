@@ -155,9 +155,70 @@ exports.getUserCart = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ cart: flattened });
+    if (flattened) res.status(200).json({ cart: flattened });
+    else res.status(404).json({ error: error.cartNotFound });
   } catch (e) {
     console.log(e);
+    res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET Method, Authorized
+ *
+ * This controller function is triggered when the user has clicked Buy Now button
+ * of a product.
+ *
+ * This function verifies if the user is valid and the product is still available
+ */
+exports.getCartItem = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    // const userId = "6127b3b64dfdba29d40a561b";
+    const productId = req.body.productId;
+    // const productId = "6127b3c54dfdba29d40a561d";
+
+    if (!userId || !product)
+      res.status(406).json({ error: error.incompleteData });
+    else {
+      /* Checks if the user exists */
+      const user = await User.findById(userId, "_id").exec();
+
+      if (!user) res.status(404).json({ error: error.userNotFound });
+      else {
+        /* Queries the products and checks if it has sufficient inventory */
+        const product = await Product.findById(
+          productId,
+          "_inventory item imageAddress retailPrice"
+        )
+          .populate({
+            path: "_inventory",
+            select: "onHand -_id",
+            match: { onHand: { $gt: 0 } },
+          })
+          .exec();
+
+        // checks if there is a product found
+        if (!product) res.status(404).json({ error: error.productNotFound });
+        // checks if there is an inventory
+        else if (product._inventory.length <= 0)
+          res.status(404).json({ error: error.insufficientProductQuantity });
+        else {
+          // modify the data to be sent
+          const productData = {
+            productId: product._id,
+            item: product.item,
+            retailPrice: product.retailPrice,
+            image: product.imageAddress,
+            quantity: 1,
+            checkout: true, // the propert used in the frontend to check if its for checkout
+          };
+
+          res.status(200).json({ product: productData });
+        }
+      }
+    }
+  } catch (e) {
     res.status(500).json({ error: error.serverError });
   }
 };
