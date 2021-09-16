@@ -164,21 +164,22 @@ exports.getUserCart = async (req, res, next) => {
 };
 
 /*
- * GET Method, Authorized
+ * POST Method, Authorized
  *
- * This controller function is triggered when the user has clicked Buy Now button
- * of a product.
+ * This controller function is triggered on loading the checkout page, which could
+ * be used to get one or more products.
  *
- * This function verifies if the user is valid and the product is still available
+ * This is a post method because the client needs to pass a request with array body.
+ *
+ * This function verifies if the user is valid and the product(s) is still available
  */
 exports.getCartItem = async (req, res, next) => {
   try {
     const userId = req.user._id;
     // const userId = "6127b3b64dfdba29d40a561b";
-    const productId = req.params.productId;
-    // const productId = "6127b3c54dfdba29d40a561d";
+    const productIds = req.body.productIds;
 
-    if (!userId || !productId)
+    if (!userId || !productIds || productIds.length <= 0)
       res.status(406).json({ error: error.incompleteData });
     else {
       /* Checks if the user exists */
@@ -187,8 +188,8 @@ exports.getCartItem = async (req, res, next) => {
       if (!user) res.status(404).json({ error: error.userNotFound });
       else {
         /* Queries the products and checks if it has sufficient inventory */
-        const product = await Product.findById(
-          productId,
+        let products = await Product.find(
+          { _id: { $in: productIds } },
           "_inventory item imageAddress retailPrice"
         )
           .populate({
@@ -198,26 +199,26 @@ exports.getCartItem = async (req, res, next) => {
           })
           .exec();
 
-        // checks if there is a product found
-        if (!product) res.status(404).json({ error: error.productNotFound });
-        // checks if there is an inventory
-        else if (product._inventory.length <= 0)
-          res.status(404).json({ error: error.insufficientProductQuantity });
+        // filter products without inventory
+        products = products.filter((d) => d._inventory.length > 0);
+
+        // checks if product(s) is/are found
+        if (!products || products.length <= 0)
+          res.status(404).json({ error: error.productNotFound });
         else {
-          // modify the data to be sent
-          // the data is set to be an Array because the ShoppingCartReducer assumes an iteratable value
-          const productData = [
-            {
-              productId: product._id,
-              item: product.item,
-              retailPrice: product.retailPrice,
-              image: product.imageAddress,
+          // modify each product item
+          const productClientReady = products.map((e) => {
+            return {
+              productId: e._id,
+              item: e.item,
+              retailPrice: e.retailPrice,
+              image: e.imageAddress,
               quantity: 1,
               checkout: true, // the propert used in the frontend to check if its for checkout
-            },
-          ];
+            };
+          });
 
-          res.status(200).json({ product: productData });
+          res.status(200).json({ products: productClientReady });
         }
       }
     }
