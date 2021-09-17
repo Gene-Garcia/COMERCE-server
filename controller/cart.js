@@ -169,15 +169,23 @@ exports.getUserCart = async (req, res, next) => {
  * This controller function is triggered on loading the checkout page, which could
  * be used to get one or more products.
  *
- * This is a post method because the client needs to pass a request with array body.
+ * This is a post method because the client needs to pass a request with object body.
+ * The object body has the product id as the key property and the quantity as the value pair
  *
  * This function verifies if the user is valid and the product(s) is still available
  */
-exports.getCartItem = async (req, res, next) => {
+exports.getItemsForCheckout = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    // const userId = "6127b3b64dfdba29d40a561b";
-    const productIds = req.body.productIds;
+    // const userId = req.user._id;
+    const userId = "6127b3b64dfdba29d40a561b";
+
+    //[{id:"", quantity: 0}] or
+    // { "id": qty, "id2": qty, "id3": qty, }
+    // use this quantity to set the quantiy of the products returned
+    // para hindi na kailangan pang iloop sa client
+
+    const reqProducts = req.body.products;
+    const productIds = Object.keys(reqProducts);
 
     if (!userId || !productIds || productIds.length <= 0)
       res.status(406).json({ error: error.incompleteData });
@@ -213,7 +221,7 @@ exports.getCartItem = async (req, res, next) => {
               item: e.item,
               retailPrice: e.retailPrice,
               image: e.imageAddress,
-              quantity: 1,
+              quantity: reqProducts[e._id],
               checkout: true, // the propert used in the frontend to check if its for checkout
             };
           });

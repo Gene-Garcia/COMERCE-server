@@ -9,13 +9,13 @@ const {
   addToCart,
   getNumberOfCartItem,
   getUserCart,
-  getCartItem,
+  getItemsForCheckout,
 } = require("../controller/cart");
 
 // route
 router.patch("/add", authorize, addToCart);
 router.get("/count", authorize, getNumberOfCartItem);
 router.get("/user", authorize, getUserCart);
-router.post("/products", authorize, getCartItem);
+router.post("/products", authorize, getItemsForCheckout);
 
 module.exports = router;
