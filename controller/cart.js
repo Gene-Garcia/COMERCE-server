@@ -176,8 +176,8 @@ exports.getUserCart = async (req, res, next) => {
  */
 exports.getItemsForCheckout = async (req, res, next) => {
   try {
-    // const userId = req.user._id;
-    const userId = "6127b3b64dfdba29d40a561b";
+    const userId = req.user._id;
+    // const userId = "6127b3b64dfdba29d40a561b";
 
     //[{id:"", quantity: 0}] or
     // { "id": qty, "id2": qty, "id3": qty, }
@@ -222,7 +222,6 @@ exports.getItemsForCheckout = async (req, res, next) => {
               retailPrice: e.retailPrice,
               image: e.imageAddress,
               quantity: reqProducts[e._id],
-              checkout: true, // the propert used in the frontend to check if its for checkout
             };
           });
 

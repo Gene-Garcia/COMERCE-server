@@ -13,9 +13,9 @@ const {
 } = require("../controller/cart");
 
 // route
+router.post("/products", authorize, getItemsForCheckout);
 router.patch("/add", authorize, addToCart);
 router.get("/count", authorize, getNumberOfCartItem);
 router.get("/user", authorize, getUserCart);
-router.post("/products", authorize, getItemsForCheckout);
 
 module.exports = router;
