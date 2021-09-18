@@ -2,33 +2,30 @@ require("dotenv").config();
 
 // Packages
 const express = require("express");
-const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
 
 // Init
 const app = express();
 const PORT = process.env.PORT;
+/* A determiner variable that will help the server to know where the API requests will come from */
 const isProduction = process.env.PRODUCTION || false;
-conts = origin = isProduction
+const origin = isProduction
   ? "https://co-merce.netlify.app"
   : "http://localhost:3000";
-console.log(origin);
 
 // Database
 require("./config/database");
 
 // Middlewares
+app.use(cookieParser());
+/*
+ * Applying this middleware sets cookie in res with the cookie, on the first request and updates it once the token expires,
+ * token which will be use to verify every request (GET, POST, etc.) made to the server.
+ */
+app.use(csrf({ cookie: true }));
 app.set("trust proxy", 1); // ref: https://stackoverflow.com/questions/66503751/cross-domain-session-cookie-express-api-on-heroku-react-app-on-netlify
 app.use(express.json());
-app.use(cookieParser());
-app.use(csrf({ cookie: true }));
-app.use(
-  cors({
-    credentials: true,
-    origin: origin,
-  })
-);
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH");

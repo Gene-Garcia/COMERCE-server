@@ -1,11 +1,29 @@
+// Packages
 require("dotenv").config();
 
 // Models
 const User = require("mongoose").model("User");
 
-// Utilis
+// Utils
 const { sendMailer } = require("../utils/mailer");
 
+// Custom Error Message
+const { error } = require("../config/errorMessages");
+
+/*
+ * POST Method
+ *
+ * Credentials expected are email and password.
+ *
+ * Second key function of this function is:
+ *    generating JWT
+ *    setting JWT to an http only cookie
+ *
+ * With that, the cookie with the JWT cannot be accessed in the client.
+ * It will only be send every request made to the server and
+ * will be used by the authorize middleware whenever embedded to a route.
+ *
+ */
 exports.signin = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -13,149 +31,158 @@ exports.signin = async (req, res, next) => {
     const user = await User.findOne({ email: email }, "+password").exec();
 
     if (user === null || user === undefined)
-      res.status(404).send({
-        success: false,
-        error: "Invalid Credentials",
-      });
+      res.status(406).json({ error: error.incompleteData });
     else {
       const credentials = await user.comparePassword(password);
       if (credentials) {
-        const token = await user.generateSignedToken();
+        const jwt = await user.generateSignedToken();
 
         // remove password field from object
         // delete user.password;
 
         // set cookie
-        // httpThe httpOnly: true setting means that the cookie
-        // can’t be read using JavaScript but can still be sent back to
-        // the server in HTTP requests. Without this setting, an XSS
-        // attack could use document.cookie to get a list of stored cookies
-        // and their values.
-        res.cookie(process.env.JWT_KEY_IDENTIFIER, token, {
+        // the JWT expiration is 15 minutes in 'ms'
+        res.cookie(process.env.JWT_KEY_IDENTIFIER, jwt, {
           httpOnly: true,
           maxAge: process.env.JWT_EXPIRATION,
         });
 
         res.status(200).json({
-          success: true,
-          user: {
-            id: user._id,
-            email: user.email,
-            username: user.username,
-          },
-          token,
+          user,
+          token: jwt,
         });
-      } else
-        res.status(404).send({
-          success: false,
-          error: "Invalid credentials",
-        });
+      } else res.status(404).json({ error: error.invalidCredentials });
     }
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      error: error.message,
-    });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };
 
+/*
+ * POST Method
+ *
+ * This function only creates a new record of the user, it does not authenticate
+ * nor authorize the user. The client still needs to login using their new account
+ *
+ */
 exports.signup = async (req, res, next) => {
   const { email, username, password } = req.body;
 
   try {
     // check if existing
     const check = await User.findOne({ email }).exec();
-    if (check)
-      res
-        .status(500)
-        .json({ success: false, error: "Email is already taken." });
+    if (check) res.status(500).json({ error: error.emailTaken });
     else {
       const newUser = await User.create({ email, username, password });
 
       // The logic, after registration, go back to login, so no need, yet, to send token
-      res.status(200).json({
-        success: true,
-        user: {
-          id: newUser._id,
-          email: newUser.email,
-          username: newUser.username,
-        },
-      });
+      res.status(200).json({});
     }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };
 
+/*
+ * POST Method
+ *
+ * This function only clears the cookie record of the JWT and
+ * set its expiration/mag age date to an expired date, which is the current time.
+ *
+ */
 exports.signout = async (req, res, next) => {
-  res.cookie(process.env.JWT_KEY_IDENTIFIER, "", {
-    httpOnly: true,
-    maxAge: Date.now(),
-  });
-  res.status(200).json({ success: true });
+  try {
+    res.cookie(process.env.JWT_KEY_IDENTIFIER, "", {
+      httpOnly: true,
+      maxAge: Date.now(),
+    });
+    res.status(200).json({});
+  } catch (error) {
+    res.status(500).json({ error: error.serverError });
+  }
 };
 
+/*
+ * POST Method
+ *
+ * This function expects to receieve an email where the reset link with token will be sent.
+ * However, it will still validate if the email is in the database.
+ *
+ */
 exports.forgotPassword = async (req, res, next) => {
   const { email } = req.body;
+
+  if (!email) res.status(406).json({ error: error.incompleteData });
 
   // we must use the await to access the embed middleware function
   try {
     let user = await User.findOne({ email }).exec();
 
-    if (user === null || user === undefined)
-      res
-        .status(404)
-        .json({ success: false, error: "Emaill cannot be found." });
+    if (!user)
+      res.status(404).json({ success: false, error: "Email cannot be found." });
     else {
       try {
         // generate the password token and expiration
         user.generateResetPasswordToken();
         await user.save();
 
+        // programatically determine if the runntime is in development or deployed
+        const domain = process.env.PRODUCTION
+          ? "https://co-merce.netlify.app"
+          : "http://localhost:3000";
+
         // send email
-        const resetLink =
-          "http://localhost:3000/password/reset?token=" +
-          user.resetPasswordToken;
+        const resetLink = `${domain}/password/reset?token=${user.resetPasswordToken}`;
         const emailMsg = {
-          to: user.email, // Change to your recipient
-          from: process.env.MAILER_OWNER, // Change to your verified sender
+          to: user.email,
+          from: process.env.MAILER_OWNER,
           subject: "Forgot Password Account Request",
           text: `Go here ${resetLink} to reset your password`,
           html: `
         <h1>Password reset</h1>
         <p>This link will expire within 15 minutes.</p>
         <a href=${resetLink}>Click here to reset your password</a>
-        <p>Token: ${user.resetPasswordtoken}</p>
         <br />
         <p>Thanks,</p>
-        <p>CoMerce team<p/>`,
+        <p>COMERCE team<p/>`,
         };
         await sendMailer(emailMsg);
 
-        res
-          .status(200)
-          .json({ success: true, message: "An email has been sent." });
+        res.status(200).json({
+          message: `An email has been sent to ${email}. Please follow the instruction in the email to have your password resetted. Thank you!`,
+        });
       } catch (error) {
-        // remove the set token in database
+        // remove the set token in the users record in the database
         user.resetPasswordToken = undefined;
         user.resetPasswordTokenExpiration = undefined;
         await user.save();
 
-        res
-          .status(500)
-          .send({ success: false, error: "Email cannot be send successfully" });
+        res.status(500).send({
+          error:
+            "Our server have encountered an error in sending an email. Try again. If error persists please contact our customer support.",
+        });
       }
     }
-  } catch (error) {
-    res.status(500).send({ success: false, error: error.message });
+  } catch (e) {
+    res.status(500).send({ error: error.serverError });
   }
 };
 
+/*
+ * PUT Method
+ *
+ * The function handles the actual reset password, where the user have given
+ * their new password and will be hashed and PUT/UPDATED to their account record.
+ *
+ * This function expects and requires a correct reset password token which is embedded
+ * in the set email.
+ *
+ */
 exports.resetPassword = async (req, res, next) => {
   const { password, email, resetPasswordToken } = req.body;
+
+  if (!password || !email || !resetPasswordToken)
+    res.status(406).json({ error: error.incompleteData });
 
   try {
     const user = await User.findOne({
@@ -164,11 +191,7 @@ exports.resetPassword = async (req, res, next) => {
       resetPasswordTokenExpiration: { $gt: Date.now() },
     }).exec();
 
-    if (user === null || user === undefined)
-      res.status(404).json({
-        success: false,
-        error: "Invalid rest password request or reset password token",
-      });
+    if (!user) res.status(404).json({ error: error.invalidResetPasswordToken });
 
     // update the password, which will trigger the embedded method
     user.password = password;
@@ -176,68 +199,80 @@ exports.resetPassword = async (req, res, next) => {
     user.resetPasswordTokenExpiration = undefined;
     await user.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Password changed successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(201)
+      .json({ message: "Your password was changed successfully." });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };
 
+/*
+ * POST Method, but maybe we can chage it to patch or put because it only updates the user's password
+ *
+ * This function is used to reset a password where the user still remembers their current password.
+ *
+ * A notable code in this function is that it still needs to re-query the user even when
+ * there is a req.user.
+ * That is because req.user does not contain the 'password' field, hence, we cannot use the comparePassword
+ * function.
+ *
+ */
 exports.changePassword = async (req, res, next) => {
   const { newPassword, oldPassword } = req.body;
-
   email = req.user.email;
 
-  try {
-    // req.user does not have the password field, hence, we cannot use comparePassword
-    // we need to re-query the user
-    const user = await User.findOne(
-      { _id: req.user._id, email: email },
-      "+password"
-    ).exec();
+  if (!newPassword || !oldPassword || !email)
+    res.status(406).json({ error: error.incompleteData });
 
-    if (user === null || user === undefined)
-      res
-        .status(404)
-        .json({ success: false, error: "Unable to find this user" });
+  try {
+    // req.user does not have the password field, hence, we cannot use comparePassword. We need to re-query the user
+    const user = await User.findById(req.user._id, "+password").exec();
+
+    if (!user) res.status(404).json({ error: error.userNotFound });
     else {
-      // We can now use compare password
+      // we can now use compare password
       const matchOldPassword = await user.comparePassword(oldPassword);
 
       if (!matchOldPassword)
-        res
-          .status(404)
-          .json({ success: false, error: "Incorrect old password" });
+        res.status(404).json({ error: error.incorrectOldPassword });
       else {
         // change and save the password in db
         user.password = newPassword;
-        console.log(user);
         await user.save();
 
         res
           .status(200)
-          .json({ success: true, message: "Password changed successfully" });
+          .json({ message: "Your password was changed successfully." });
       }
     }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
   }
 };
 
+/*
+ * GET Method
+ *
+ * This function was used only during development. There is still no seen use for this function.
+ *
+ */
 exports.index = async (req, res, next) => {
-  res
-    .status(200)
-    .json({ success: true, message: "Welcome " + req.user.username });
+  res.status(200).json({ message: "Welcome " + req.user.username });
 };
 
+/*
+ * GET Method
+ *
+ * This is a function that is intended to be called in client views/pages that requires to
+ * have a user logged in, but does not do server/API requests. This includes the landing of the user
+ *
+ * Hence, this function will be used by those views to create a request to this function and
+ * validate if the JWT is present and is valid before having the user view that client view/page.
+ *
+ */
 exports.userValidator = async (req, res, next) => {
   res.status(200).json({
-    success: true,
     authorized: true,
     message: "This user is authorized",
   });
