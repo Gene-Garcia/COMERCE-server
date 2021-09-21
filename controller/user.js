@@ -28,7 +28,10 @@ exports.signin = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email: email }, "+password").exec();
+    const user = await User.findOne(
+      { email: email },
+      "+password email username _id"
+    ).exec();
 
     if (user === null || user === undefined)
       res.status(406).json({ error: error.incompleteData });
@@ -36,9 +39,6 @@ exports.signin = async (req, res, next) => {
       const credentials = await user.comparePassword(password);
       if (credentials) {
         const jwt = await user.generateSignedToken();
-
-        // remove password field from object
-        // delete user.password;
 
         // set cookie
         // the JWT expiration is 15 minutes in 'ms'
@@ -70,10 +70,10 @@ exports.signup = async (req, res, next) => {
 
   try {
     // check if existing
-    const check = await User.findOne({ email }).exec();
+    const check = await User.findOne({ email }, "_id").exec();
     if (check) res.status(500).json({ error: error.emailTaken });
     else {
-      const newUser = await User.create({ email, username, password });
+      await User.create({ email, username, password });
 
       // The logic, after registration, go back to login, so no need, yet, to send token
       res.status(200).json({});
@@ -116,7 +116,10 @@ exports.forgotPassword = async (req, res, next) => {
 
   // we must use the await to access the embed middleware function
   try {
-    let user = await User.findOne({ email }).exec();
+    let user = await User.findOne(
+      { email },
+      "email resetPasswordToken resetPasswordTokenExpiration"
+    ).exec();
 
     if (!user)
       res.status(404).json({ success: false, error: "Email cannot be found." });
@@ -164,6 +167,7 @@ exports.forgotPassword = async (req, res, next) => {
       }
     }
   } catch (e) {
+    console.log(e);
     res.status(500).send({ error: error.serverError });
   }
 };
@@ -185,11 +189,14 @@ exports.resetPassword = async (req, res, next) => {
     res.status(406).json({ error: error.incompleteData });
 
   try {
-    const user = await User.findOne({
-      email,
-      resetPasswordToken,
-      resetPasswordTokenExpiration: { $gt: Date.now() },
-    }).exec();
+    const user = await User.findOne(
+      {
+        email,
+        resetPasswordToken,
+        resetPasswordTokenExpiration: { $gt: Date.now() },
+      },
+      "+password resetPasswordToken resetPasswordTokenExpiration"
+    ).exec();
 
     if (!user) res.status(404).json({ error: error.invalidResetPasswordToken });
 
@@ -227,7 +234,7 @@ exports.changePassword = async (req, res, next) => {
 
   try {
     // req.user does not have the password field, hence, we cannot use comparePassword. We need to re-query the user
-    const user = await User.findById(req.user._id, "+password").exec();
+    const user = await User.findById(req.user._id, "_id +password").exec();
 
     if (!user) res.status(404).json({ error: error.userNotFound });
     else {

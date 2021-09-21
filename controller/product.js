@@ -18,7 +18,11 @@ exports.getAvailableProducts = async (req, res, next) => {
       {},
       "rating _inventory item imageAddress retailPrice description"
     )
-      .populate({ path: "_inventory", match: { onHand: { $gt: 0 } } })
+      .populate({
+        path: "_inventory",
+        select: "onHand",
+        match: { onHand: { $gt: 0 } },
+      })
       .exec();
 
     // filters the products object to only those have an _inventory record.
@@ -120,8 +124,11 @@ exports.getProduct = async (req, res, next) => {
   if (!productId) res.status(406).json({ error: error.incompleteData });
   else {
     try {
-      const product = await Product.findById(productId)
-        .populate("_inventory")
+      const product = await Product.findById(
+        productId,
+        "rating item retailPrice description imageAddress"
+      )
+        .populate({ path: "_inventory", select: "onHand" })
         .exec();
 
       if (!product) res.status(404).json({ error: error.productNotFound });

@@ -23,7 +23,9 @@ exports.addToCart = async (req, res, next) => {
     res.status(406).json({ error: error.incompleteData });
   else {
     try {
-      const user = await User.findById(userId).populate("_cart").exec();
+      const user = await User.findById(userId, "_id _cart ")
+        .populate({ path: "_cart", select: "_id _product" })
+        .exec();
       const product = await Product.findById(productId).exec();
 
       if (!user) res.status(404).json({ error: error.userNotFound });
@@ -64,8 +66,7 @@ exports.addToCart = async (req, res, next) => {
           await user.save();
         }
 
-        // VERIFY IF NECESSARY TO SEND USER
-        res.status(201).json({ user });
+        res.status(201).json();
       }
     } catch (e) {
       res.status(500).json({ error: error.serverError });
@@ -86,7 +87,9 @@ exports.getNumberOfCartItem = async (req, res, next) => {
   const userId = req.user._id;
 
   try {
-    const user = await User.findById(userId).populate("_cart").exec();
+    const user = await User.findById(userId, "_id _cart")
+      .populate({ path: "_cart", select: "_id" })
+      .exec();
 
     if (!user) res.status(404).json({ error: error.userNotFound });
     else {
@@ -106,7 +109,6 @@ exports.getNumberOfCartItem = async (req, res, next) => {
  */
 exports.getUserCart = async (req, res, next) => {
   const userId = req.user._id;
-  // const userId = "6127b3b64dfdba29d40a561b";
 
   try {
     /*
