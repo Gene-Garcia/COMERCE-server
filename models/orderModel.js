@@ -8,16 +8,6 @@ const orderSchema = Schema({
     ref: "User",
   },
 
-  paymentMethod: {
-    type: String,
-    required: "Payment method is required",
-  },
-
-  paymentInformation: {
-    type: Object,
-    required: "Payment information is required",
-  },
-
   orderDate: {
     type: Date,
     required: "Order date is required",
@@ -31,6 +21,16 @@ const orderSchema = Schema({
   shipmentDetails: {
     type: Object,
     required: "Shipment details is required",
+  },
+
+  paymentMethod: {
+    type: String,
+    required: "Payment method is required",
+  },
+
+  paymentInformation: {
+    type: Object,
+    required: "Payment information is required",
   },
 
   orderedProducts: [
