@@ -8,7 +8,7 @@ const { authorize } = require("../middleware/auth");
 const { placeCustomerOrder } = require("../controller/order");
 
 // routes
-// router.route("/place").post(authorize, placeCustomerOrder);
-router.route("/place").post(placeCustomerOrder);
+router.route("/place").post(authorize, placeCustomerOrder);
+// router.route("/place").post(placeCustomerOrder);
 
 module.exports = router;

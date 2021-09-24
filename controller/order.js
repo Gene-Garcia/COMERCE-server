@@ -21,8 +21,8 @@ const populateShipmentDetails = require("../utils/shipmentHelper");
  */
 exports.placeCustomerOrder = async (req, res, next) => {
   try {
-    // const userId = req.user._id;
-    const userId = "6127b3b64dfdba29d40a561b";
+    const userId = req.user._id;
+    // const userId = "6127b3b64dfdba29d40a561b";
     const { items, shippingDetails, paymentMethod, paymentDetails } = req.body;
 
     if (
@@ -45,11 +45,6 @@ exports.placeCustomerOrder = async (req, res, next) => {
         orderedProducts: [],
       });
 
-      // find all products in items.id array
-      // build a new product object with the embedded quantity, store only id
-      // verify payment
-      // verify shipment
-
       // find products in items
       let products = await Product.find(
         {
@@ -64,25 +59,37 @@ exports.placeCustomerOrder = async (req, res, next) => {
 
       // remove empty inventory
       products = products.filter((e) => e._inventory.length > 0);
-      console.log(products);
 
       // check if all the items were found
       if (products.length != items.length)
         res.status(406).json({ error: error.productNotFound });
       else {
         // rebuild products
-        // {_product: id, priceAtPoint: price, quantity: qty}
         order.orderedProducts = products.map((e) => ({
           _product: e._id,
           priceAtPoint: e.retailPrice,
-          quantity: items.find((f) => f.productId == e._id).productId,
+          quantity: items.find((f) => f.productId == e._id).quantity,
         }));
       }
+
+      // verify and populate shipment details
+      order.shipmentDetails = populateShipmentDetails(shippingDetails);
+      if (order.shipmentDetails === false)
+        res.status(406).json({ error: error.invalidShipmentDetails });
+
+      // verify and populate payment method
+      order.paymentMethod = paymentMethod;
+      order.paymentInformation = populatePayment(paymentMethod, paymentDetails);
+      if (order.paymentInformation === false)
+        res.status(406).json({ error: error.invalidPaymentDetails });
+
+      // save the order
+      await order.save();
 
       res.status(200).json({ order });
     }
   } catch (e) {
-    console.log(e);
+    console.log(e.message);
     res.status(500).json({ error: error.serverError });
   }
 };
