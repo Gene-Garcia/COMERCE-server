@@ -86,7 +86,13 @@ exports.placeCustomerOrder = async (req, res, next) => {
       // save the order
       await order.save();
 
-      res.status(200).json({ order });
+      res
+        .status(200)
+        .json({
+          orderId: order._id,
+          message:
+            "We have successfully processed and placed your order. Your order will have arive within 5 working days. Thank you!",
+        });
     }
   } catch (e) {
     console.log(e.message);
