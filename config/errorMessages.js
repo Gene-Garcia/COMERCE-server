@@ -29,6 +29,9 @@ const error = {
   invalidShipmentDetails:
     "We are unable to process your order at the moment because of incorrect shipment details.",
 
+  invalidPaymentDetails:
+    "We apoligize but we have received invalid payment information. We are not able to process your order at this time, try again.",
+
   invalidResetPasswordToken:
     "It seems that your reset password request is invalid. To avoid this error, only use the reset password link from the email within 15 minutes.",
 
