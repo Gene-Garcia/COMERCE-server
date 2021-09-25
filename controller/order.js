@@ -86,6 +86,12 @@ exports.placeCustomerOrder = async (req, res, next) => {
       // save the order
       await order.save();
 
+      // we now need to remove the product, if it was in the user's cart
+      // check if products has carts record
+      // get user _cart
+      // remove the id of carts found from the user._cart
+      // remove or delete the queried carts records
+
       res.status(200).json({
         orderId: order._id,
         message:
