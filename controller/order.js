@@ -117,3 +117,34 @@ exports.placeCustomerOrder = async (req, res, next) => {
     res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * GET Method
+ *
+ * A method that will query and return the 'UNSHIPPED' or unfulfilled
+ * of that certain user.
+ *
+ * ORDER constitutes to unshipped or unfulfilled, while
+ * PURCHASES constitutes to shipped or fulfilled
+ */
+exports.customerOrders = async (req, res, next) => {
+  try {
+    // const userId = req.user._id;
+    const userId = "6127b3b64dfdba29d40a561b";
+
+    const orders = await Order.find(
+      { _customer: userId },
+      "-_customer -paymentInformation.securityCode"
+    )
+      .populate({
+        path: "orderedProducts._product",
+        select: "item retailPrice imageAddress",
+      })
+      .exec();
+
+    res.status(200).json({ orders });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ error: error.serverError });
+  }
+};
