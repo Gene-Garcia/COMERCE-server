@@ -18,6 +18,12 @@ const orderSchema = Schema({
     required: "ETA Date is required",
   },
 
+  shippingFee: {
+    type: Number,
+    required: "Shipping fee is required",
+    min: 0,
+  },
+
   shipmentDetails: {
     type: Object,
     required: "Shipment details is required",

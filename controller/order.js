@@ -23,14 +23,21 @@ exports.placeCustomerOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
     // const userId = "6127b3b64dfdba29d40a561b";
-    const { items, shippingDetails, paymentMethod, paymentDetails } = req.body;
+    const {
+      items,
+      shippingDetails,
+      paymentMethod,
+      paymentDetails,
+      shippingFee,
+    } = req.body;
 
     if (
       !items ||
       items.length <= 0 ||
       !shippingDetails ||
       !paymentDetails ||
-      !paymentMethod
+      !paymentMethod ||
+      !shippingFee
     )
       res.status(406).json({ error: error.incompleteData });
     else {
@@ -39,6 +46,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
         _customer: userId,
         orderDate: Date.now(),
         ETADate: etaDate.setDate(etaDate.getDate() + 5),
+        shippingFee: null,
         shipmentDetails: {},
         paymentMethod: "",
         paymentInformation: "",
@@ -46,6 +54,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
       });
 
       // find products in items
+      // we perform find even through items contains the price, because hackers might change the context value price of an item
       let products = await Product.find(
         {
           _id: { $in: items.map((e) => e.productId) },
@@ -71,6 +80,11 @@ exports.placeCustomerOrder = async (req, res, next) => {
           quantity: items.find((f) => f.productId == e._id).quantity,
         }));
       }
+
+      // verify shipping fee
+      order.shippingFee = shippingFee;
+      if (isNaN(order.shippingFee))
+        res.status(406).json({ error: error.serverError });
 
       // verify and populate shipment details
       order.shipmentDetails = populateShipmentDetails(shippingDetails);
