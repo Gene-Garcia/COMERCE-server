@@ -5,10 +5,10 @@ const router = require("express").Router();
 const { authorize } = require("../middleware/auth");
 
 // controller
-const { placeCustomerOrder } = require("../controller/order");
+const { placeCustomerOrder, customerOrders } = require("../controller/order");
 
 // routes
 router.route("/place").post(authorize, placeCustomerOrder);
-// router.route("/place").post(placeCustomerOrder);
+router.route("/orders").get(authorize, customerOrders);
 
 module.exports = router;

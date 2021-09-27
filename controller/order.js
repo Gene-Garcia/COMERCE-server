@@ -129,8 +129,8 @@ exports.placeCustomerOrder = async (req, res, next) => {
  */
 exports.customerOrders = async (req, res, next) => {
   try {
-    // const userId = req.user._id;
-    const userId = "6127b3b64dfdba29d40a561b";
+    const userId = req.user._id;
+    // const userId = "6127b3b64dfdba29d40a561b";
 
     const orders = await Order.find(
       { _customer: userId },
