@@ -26,6 +26,12 @@ const error = {
   emailTaken:
     "Hi, it appears that your email is already registered. If you forgot your account password, you may proceed to reset your password through email. Please go to /password/reset",
 
+  invalidShipmentDetails:
+    "We are unable to process your order at the moment because of incorrect shipment details.",
+
+  invalidPaymentDetails:
+    "We apoligize but we have received invalid payment information. We are not able to process your order at this time, try again.",
+
   invalidResetPasswordToken:
     "It seems that your reset password request is invalid. To avoid this error, only use the reset password link from the email within 15 minutes.",
 
@@ -36,7 +42,7 @@ exports.error = error;
 /*
 200 - successful get request or any database retrieval
 201 - successful database modification, creation, etc.
-406 - incomplete request data
+406 - incomplete request data, not acceptable
 404 - search data not found (product, user, etc.)
 500 - all unexpected error in the server
  */
