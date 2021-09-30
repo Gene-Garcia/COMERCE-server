@@ -88,7 +88,7 @@ exports.getNumberOfCartItem = async (req, res, next) => {
 
   try {
     const user = await User.findById(userId, "_id _cart")
-      .populate({ path: "_cart", select: "_id" })
+      .populate({ path: "_cart", select: "quantity" })
       .exec();
 
     if (!user) res.status(404).json({ error: error.userNotFound });
