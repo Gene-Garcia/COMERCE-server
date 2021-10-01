@@ -236,3 +236,40 @@ exports.getItemsForCheckout = async (req, res, next) => {
     res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * DELETE Method, Authorized
+ *
+ * A controller function that is used in the cart page in the 'remove from cart' button.
+ *
+ * Completely removes a cart item based on the parameter
+ */
+exports.removeFromCart = async (req, res, next) => {
+  /*
+   * mongoose does not auto-delete the parent record if the child record is deleted.
+   * mongoose only deletes the child records when the parent record is deleted
+   */
+
+  try {
+    const cartId = req.params.cartId;
+
+    if (!cartId) res.status(406).json({ error: error.incompleteData });
+    else if (req.user._cart && !cartId in req.user._cart) {
+      // checks if the cartId is really in the user's cart
+      res.status(404).json({ error: error.notInYourCart });
+    } else {
+      const cartItem = await Cart.findById(cartId, "_id").exec();
+
+      if (!cartItem) res.status(404).json({ error: error.cartNotFound });
+      else {
+        await Cart.deleteOne({ _id: cartItem._id }).exec();
+
+        res
+          .status(200)
+          .json({ message: `Cart ${cartItem._id} removed from your cart.` });
+      }
+    }
+  } catch (e) {
+    res.status(500).json({ error: error.serverError });
+  }
+};

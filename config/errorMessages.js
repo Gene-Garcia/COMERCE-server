@@ -14,6 +14,12 @@ const error = {
   cartNotFound:
     "Your cart was not found in our database. Try again later. If error persist please contact our customer support.",
 
+  nothingToRemove:
+    "We have not found any cart records in your account. There is nothing to remove.",
+
+  notInYourCart:
+    "We cannt delete this cart record because it is part of your cart.",
+
   insufficientProductQuantity:
     "We apologize but this product seems to be removed or out stock. You may check out our other products, thank you.",
 
