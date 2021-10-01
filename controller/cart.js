@@ -128,7 +128,7 @@ exports.getUserCart = async (req, res, next) => {
      */
     const cart = await User.findById(userId, "_cart").populate({
       path: "_cart",
-      select: "_product quantity -_id",
+      select: "_product quantity _id",
 
       populate: {
         path: "_product",
@@ -148,6 +148,7 @@ exports.getUserCart = async (req, res, next) => {
     // flatten object
     const flattened = filtered.map((e) => {
       return {
+        cartId: e._id,
         productId: e._product._id,
         item: e._product.item,
         retailPrice: e._product.retailPrice,
@@ -266,7 +267,10 @@ exports.removeFromCart = async (req, res, next) => {
 
         res
           .status(200)
-          .json({ message: `Cart ${cartItem._id} removed from your cart.` });
+          .json({
+            removedCart: cartItem._id,
+            message: `Cart ${cartItem._id} removed from your cart.`,
+          });
       }
     }
   } catch (e) {
