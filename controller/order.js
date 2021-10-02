@@ -4,6 +4,7 @@ const { error } = require("../config/errorMessages");
 // models
 const Order = require("mongoose").model("Order");
 const Product = require("mongoose").model("Product");
+const Cart = require("mongoose").model("Cart");
 
 // utils
 const populatePayment = require("../utils/paymentHelper");
@@ -101,10 +102,11 @@ exports.placeCustomerOrder = async (req, res, next) => {
       await order.save();
 
       // we now need to remove the product, if it was in the user's cart
-      // check if products has carts record
-      // get user _cart
-      // remove the id of carts found from the user._cart
-      // remove or delete the queried carts records
+      const itemIds = items.map((e) => e.productId);
+      await Cart.deleteMany({
+        _id: { $in: req.user._cart },
+        _product: { $in: itemIds },
+      }).exec();
 
       res.status(200).json({
         orderId: order._id,
