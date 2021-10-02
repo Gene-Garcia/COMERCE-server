@@ -1,5 +1,6 @@
 // customer error messages
 const { error } = require("../config/errorMessages");
+const { orderStatus } = require("../config/status");
 
 // models
 const Order = require("mongoose").model("Order");
@@ -47,6 +48,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
         _customer: userId,
         orderDate: Date.now(),
         ETADate: etaDate.setDate(etaDate.getDate() + 5),
+        status: orderStatus[2],
         shippingFee: null,
         shipmentDetails: {},
         paymentMethod: "",
