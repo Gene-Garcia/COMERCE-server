@@ -80,6 +80,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
         order.orderedProducts = products.map((e) => ({
           _product: e._id,
           priceAtPoint: e.retailPrice,
+          rated: false,
           quantity: items.find((f) => f.productId == e._id).quantity,
         }));
       }

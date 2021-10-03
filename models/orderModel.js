@@ -58,6 +58,11 @@ const orderSchema = Schema({
         min: 0,
       },
 
+      rated: {
+        type: Boolean,
+        default: false,
+      },
+
       _product: {
         type: Schema.Types.ObjectId,
         ref: "Product",
