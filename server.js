@@ -43,6 +43,7 @@ app.use("/api/user", require("./routes/user"));
 app.use("/api/product", require("./routes/product"));
 app.use("/api/cart", require("./routes/cart"));
 app.use("/api/order", require("./routes/order"));
+app.use("/api/rate", require("./routes/rate"));
 app.use("/test", require("./routes/test"));
 
 // Listener
