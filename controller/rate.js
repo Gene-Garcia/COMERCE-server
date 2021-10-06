@@ -10,7 +10,7 @@ const { orderStatus } = require("../config/status");
  *
  */
 exports.getUserToRateProduct = async (req, res, next) => {
-  const userId = "6127b3b64dfdba29d40a561b";
+  const userId = req.user._id;
 
   try {
     // get user's order that has a status of Review
@@ -24,7 +24,7 @@ exports.getUserToRateProduct = async (req, res, next) => {
       "status orderDate ETADate orderedProducts.rated orderedProducts._product"
     ).populate({
       path: "orderedProducts._product",
-      select: "item imageAddress",
+      select: "item imageAddress retailPrice",
     });
 
     // flattens the data into client-ready object
@@ -42,8 +42,10 @@ exports.getUserToRateProduct = async (req, res, next) => {
         if (!rated)
           products.push({
             ...base,
+            productId: f._id,
             item: f.item,
             imageAddress: f.imageAddress,
+            retailPrice: f.retailPrice,
           });
       });
     });
