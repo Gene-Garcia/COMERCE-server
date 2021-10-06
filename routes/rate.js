@@ -9,6 +9,6 @@ const { getUserToRateProduct } = require("../controller/rate");
 // utils
 
 // routes
-router.get("/unrated", getUserToRateProduct);
+router.get("/unrated", authorize, getUserToRateProduct);
 
 module.exports = router;
