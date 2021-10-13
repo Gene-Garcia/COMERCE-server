@@ -36,6 +36,8 @@ exports.getUserToRateProduct = async (req, res, next) => {
         orderId: e._id,
         orderDate: e.orderDate,
         ETADate: e.ETADate,
+        rated: false, // an identifier variable that will tell if this product in the frontend has already been submitted for rating by them.
+        // hence, the frontend would be able to not show, again, this product from the products returned from by this controller
       };
 
       e.orderedProducts.forEach(({ _product: f, rated }) => {
