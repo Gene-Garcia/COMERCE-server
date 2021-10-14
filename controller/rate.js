@@ -62,12 +62,51 @@ exports.getUserToRateProduct = async (req, res, next) => {
 /*
  * PATCH Method
  *
+ * req.product, req.comment, & req.rating
+ *
  */
 exports.rateOrderProduct = async (req, res, next) => {
+  // find product, append rating
+
   // find order
   // find product in orderedProducts -no need to populate
   // set rated to true
   // check if all orderedProducts.rated in orderedProducts are true
   // then, set the order's status to Fulfilled
   // save order
+
+  try {
+    const { product, comment, rating } = req;
+
+    if (!product || !comment || !rating)
+      res.status(406).json({ error: error.incompleteData });
+    else {
+      // find order of the product
+      const order = await Order.findById(
+        product.orderId,
+        "status orderedProducts"
+      ).exec();
+
+      // check each orderedProducts and find product then change rated to true
+      // in the same loop check also if all the products are rated -this is the reason why iteration needs to continue even if product is already found
+      let allRated = true;
+      order.orderedProducts.forEach((e) => {
+        // product found
+        if (e._product == product.productId) e.rated = true;
+
+        // to check if all products are rated
+        if (e.rated === false) allRated = false;
+      });
+
+      // find product
+
+      // save
+      await order.save();
+
+      res.status(200).json({ order });
+    }
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ error: error.serverError });
+  }
 };
