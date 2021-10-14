@@ -58,3 +58,16 @@ exports.getUserToRateProduct = async (req, res, next) => {
     res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * PATCH Method
+ *
+ */
+exports.rateOrderProduct = async (req, res, next) => {
+  // find order
+  // find product in orderedProducts -no need to populate
+  // set rated to true
+  // check if all orderedProducts.rated in orderedProducts are true
+  // then, set the order's status to Fulfilled
+  // save order
+};
