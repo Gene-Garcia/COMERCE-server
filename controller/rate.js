@@ -1,5 +1,6 @@
 // models
 const Order = require("mongoose").model("Order");
+const Product = require("mongoose").model("Product");
 
 // constants
 const { error } = require("../config/errorMessages");
@@ -98,9 +99,16 @@ exports.rateOrderProduct = async (req, res, next) => {
         if (e.rated === false) allRated = false;
       });
 
-      // find product
+      // update status of order depending on 'allRated'
+      if (allRated) order.status = orderStatus[3];
+
+      // find product and insert rating
+      // COMMENT WILL NOT YET BE IMPLEMENTED
+      const dbProduct = await Product.findById(product.productId, "rating");
+      dbProduct.rating.push(rating);
 
       // save
+      await dbProduct.save();
       await order.save();
 
       res.status(200).json({ order });
