@@ -4,11 +4,14 @@ const router = require("express").Router();
 const { authorize } = require("../middleware/auth");
 
 // controllers
-const { getUserToRateProduct } = require("../controller/rate");
+const {
+  getUserToRateProduct,
+  rateOrderProduct,
+} = require("../controller/rate");
 
 // utils
 
 // routes
 router.get("/unrated", authorize, getUserToRateProduct);
-
+router.patch("/save", authorize, rateOrderProduct);
 module.exports = router;
