@@ -79,7 +79,7 @@ exports.rateOrderProduct = async (req, res, next) => {
   try {
     const { product, comment, rating } = req.body;
 
-    if (!product || !comment || !rating)
+    if (!product || !rating)
       res.status(406).json({ error: error.incompleteData });
     else {
       // find order of the product
@@ -111,12 +111,10 @@ exports.rateOrderProduct = async (req, res, next) => {
       await dbProduct.save();
       await order.save();
 
-      res
-        .status(200)
-        .json({
-          message:
-            "Thank you, your rating to our product have been received successfully.",
-        });
+      res.status(200).json({
+        message:
+          "Thank you, your rating to our product have been received successfully.",
+      });
     }
   } catch (e) {
     console.log(e);
