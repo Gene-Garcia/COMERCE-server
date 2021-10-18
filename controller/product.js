@@ -16,7 +16,7 @@ const Inventory = require("mongoose").model("Inventory");
  */
 exports.getAvailableProducts = async (req, res, next) => {
   const page = parseInt(req.params.page);
-  const limit = parseInt(req.params.limit); 
+  const limit = parseInt(req.params.limit);
 
   try {
     // filering the populate method using {$gt} still includes 'that' product, but will return a null inventory
@@ -45,15 +45,13 @@ exports.getAvailableProducts = async (req, res, next) => {
 
     // create a seperate array of the products to be included in the limit
     // done after filtering empty inventory so that we exclude not available products in the computation
-    available = available.filter((e, i) =>
-      i >= startIndex && i <= endIndex
+    const productsOnPage = available.filter(
+      (e, i) => i >= startIndex && i <= endIndex
     );
 
-    console.log(
-      `startIndex ${startIndex},\nendIndex ${endIndex},\nproducts length ${available.length}`
-    );
-
-    res.status(200).json({ available });
+    res
+      .status(200)
+      .json({ available: productsOnPage, productCount: available.length });
   } catch (e) {
     res.status(500).json({ error: error.serverError });
   }
