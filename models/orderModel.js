@@ -18,6 +18,11 @@ const orderSchema = Schema({
     required: "ETA Date is required",
   },
 
+  status: {
+    type: String,
+    required: "Status of order is required",
+  },
+
   shippingFee: {
     type: Number,
     required: "Shipping fee is required",
@@ -51,6 +56,11 @@ const orderSchema = Schema({
         type: Number,
         required: "Price of the product is required",
         min: 0,
+      },
+
+      rated: {
+        type: Boolean,
+        default: false,
       },
 
       _product: {

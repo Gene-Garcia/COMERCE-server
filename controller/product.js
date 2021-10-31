@@ -10,8 +10,14 @@ const Inventory = require("mongoose").model("Inventory");
  *
  * Gets all the available items record in the Product model.
  * However, the product must have an inventory.onHand value of more than 0.
+ *
+ * New functionality: sends only certain number of products part in some index computed by pages
+ *
  */
 exports.getAvailableProducts = async (req, res, next) => {
+  const page = parseInt(req.params.page);
+  const limit = parseInt(req.params.limit);
+
   try {
     // filering the populate method using {$gt} still includes 'that' product, but will return a null inventory
     const products = await Product.find(
@@ -27,9 +33,25 @@ exports.getAvailableProducts = async (req, res, next) => {
 
     // filters the products object to only those have an _inventory record.
     // products will have a null _inventory because they were filtered using {$gt}
-    const available = products.filter((item) => item._inventory.length > 0);
+    let available = products.filter((item) => item._inventory.length > 0);
 
-    res.status(200).json({ available });
+    /*
+     * compute the indexes of the product include on this pagination's page
+     * formula x*y = n, where x is the page, y is the limit, and n is the end index.
+     * indexes are [o,n] where o is (x-1*y)-1 = o. -1 is necessary to actually limit to no more than 16 productss
+     */
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit - 1;
+
+    // create a seperate array of the products to be included in the limit
+    // done after filtering empty inventory so that we exclude not available products in the computation
+    const productsOnPage = available.filter(
+      (e, i) => i >= startIndex && i <= endIndex
+    );
+
+    res
+      .status(200)
+      .json({ available: productsOnPage, productCount: available.length });
   } catch (e) {
     res.status(500).json({ error: error.serverError });
   }
