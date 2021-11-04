@@ -106,6 +106,8 @@ exports.getNumberOfCartItem = async (req, res, next) => {
 /*
  * GET Method, Authorized
  *
+ * Retrieves the user's cart products. This function also transforms the retrieved result
+ * to a custom object flattened object before sending it back to the client.
  */
 exports.getUserCart = async (req, res, next) => {
   const userId = req.user._id;

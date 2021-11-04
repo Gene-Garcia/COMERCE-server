@@ -9,6 +9,18 @@ const { orderStatus } = require("../config/status");
 /*
  * GET Method
  *
+ * The function controller retrieves data from the Order model with reference to the user.
+ * Then, based on the status field ("Placed", "Logistics", "Review", "Fulfilled") if "Review" then will
+ * retrieve ordereredProducts._product of that.
+ *
+ * Additionally, the orderedProducts has a 'rated' (bool) field which would indicate whether that product,
+ * which is part of the "Review" status, has  already been rated or not.
+ *
+ * An order may still be "Review" but some orderedProducts, but not all, may already have rated of true.
+ * In the post function to post rate, after saving the rate of the product, it will check if all orderedProducts
+ * are rated, then change status to Fulfilled.
+ *
+ * Returns a custom and flattened object of a product to be rated
  */
 exports.getUserToRateProduct = async (req, res, next) => {
   const userId = req.user._id;
@@ -64,6 +76,15 @@ exports.getUserToRateProduct = async (req, res, next) => {
  * PATCH Method
  *
  * req.product, req.comment, & req.rating
+ * 
+ * The patch function that updates the Product model from the user's order.orderedProducts
+ * It also updates the user Order model's status, and its order.orderedProducts.rated of the current product
+ * to be rated.
+ * 
+ * Subsequently, the function will iterate through all the orderedProducts to check if each rated are all true,
+ * then, if all true than will change the order.status to Fullfilled.
+ * 
+ * the comment part is not yet implemented.
  *
  */
 exports.rateOrderProduct = async (req, res, next) => {
