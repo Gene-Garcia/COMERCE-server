@@ -50,10 +50,41 @@ exports.authorize = async (req, res, next) => {
   }
 };
 
-exports.sellerAuthorize = async (req, res, next) => {};
+/*
+ * authorize middleware that is designed for SELLER type of user
+ *
+ */
+exports.sellerAuthorize = async (req, res, next) => {
+  try {
+    // Decode the token to get the embedded data which is the id of the user
+    const decoded = await decodeJWTKey(req, res);
+    const userId = decoded.id;
+    const userType = decoded.userType;
+
+    // Find user in the database
+    const user = await User.findById(userId).exec();
+
+    // The user id decoded from the JWT does not constitute to any user in the database
+    if (user === null || user === undefined)
+      return res.status(404).json({ success: false, error: "User not found" });
+    // check if the jwt key is SELLER as this middleware is for seller users
+    else if (!userType || userType !== "SELLER")
+      return res
+        .status(401)
+        .json({ succes: false, error: "Unathorized access" });
+    else {
+      // Set the user to the request.user
+      // Then, allow express to proceed to the controller of the route
+      req.user = user;
+      next();
+    }
+  } catch (error) {
+    return res.status(401).json({ success: false, error: error.message });
+  }
+};
 
 /*
- * seperated these line of codes as there will 2 authorize middleware
+ * seperated these line of codes as there will 2 authorize middleware.
  *
  */
 async function decodeJWTKey(req, res) {
