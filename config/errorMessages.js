@@ -1,4 +1,7 @@
 const error = {
+  unathorizedAccess:
+    "We either cannot find your account or this email does not have access to this page. If error persists you may contact our support.",
+
   incompleteData:
     "We cannot process your request with incomplete data. Try again. If error persists please contact our customer support.",
 
