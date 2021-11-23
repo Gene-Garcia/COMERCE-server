@@ -25,7 +25,7 @@ const { error } = require("../config/errorMessages");
  *
  */
 exports.signin = async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password, expectedUserType } = req.body;
 
   try {
     const user = await User.findOne(
@@ -33,8 +33,10 @@ exports.signin = async (req, res, next) => {
       "+password email username _id userType"
     ).exec();
 
-    if (user === null || user === undefined)
+    if (!user || !user.userType || !expectedUserType)
       res.status(406).json({ error: error.incompleteData });
+    else if (user.userType !== expectedUserType)
+      res.status(401).json({ error: error.unathorizedAccess });
     else {
       const credentials = await user.comparePassword(password);
       if (credentials) {
