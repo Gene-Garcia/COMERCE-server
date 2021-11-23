@@ -45,6 +45,7 @@ app.use("/api/cart", require("./routes/cart"));
 app.use("/api/order", require("./routes/order"));
 app.use("/api/rate", require("./routes/rate"));
 app.use("/test", require("./routes/test"));
+app.use("/m", require("./routes/migrate"));
 
 // Listener
 app.listen(PORT, () =>
