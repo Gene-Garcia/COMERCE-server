@@ -6,6 +6,11 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
 const userSchema = mongoose.Schema({
+  userType: {
+    type: String,
+    required: "User type is required",
+  },
+
   email: {
     type: String,
     required: "Email is required",
