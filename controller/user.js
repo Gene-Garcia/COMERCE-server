@@ -68,20 +68,25 @@ exports.signin = async (req, res, next) => {
  *
  */
 exports.signup = async (req, res, next) => {
-  const { email, username, password } = req.body;
+  const { email, username, password, userType } = req.body;
 
-  try {
-    // check if existing
-    const check = await User.findOne({ email }, "_id").exec();
-    if (check) res.status(500).json({ error: error.emailTaken });
-    else {
-      await User.create({ email, username, password });
+  if (!email || !username || !password || !userType)
+    res.status(406).json({ error: error.incompleteData });
+  else {
+    try {
+      // check if existing
+      const check = await User.findOne({ email }, "_id").exec();
+      if (check) res.status(500).json({ error: error.emailTaken });
+      else {
+        await User.create({ email, username, password, userType });
 
-      // The logic, after registration, go back to login, so no need, yet, to send token
-      res.status(200).json({});
+        // The logic, after registration, go back to login, so no need, yet, to send token
+        res.status(200).json({});
+      }
+    } catch (e) {
+      console.log(e.message);
+      res.status(500).json({ error: error.serverError });
     }
-  } catch (e) {
-    res.status(500).json({ error: error.serverError });
   }
 };
 
