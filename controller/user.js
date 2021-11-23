@@ -30,7 +30,7 @@ exports.signin = async (req, res, next) => {
   try {
     const user = await User.findOne(
       { email: email },
-      "+password email username _id"
+      "+password email username _id userType"
     ).exec();
 
     if (user === null || user === undefined)
