@@ -21,7 +21,7 @@ const Schema = mongoose.Schema;
 
 const businessSchema = Schema({
   _owner: {
-    type: mongoose.SchemaTypes.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: "User",
     required: "Business owner is required",
   },
