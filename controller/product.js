@@ -4,6 +4,7 @@ const { error } = require("../config/errorMessages");
 // Models
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Business = require("mongoose").model("Business");
 
 /*
  * GET Method
@@ -103,9 +104,12 @@ exports.createProductAndInventory = async (req, res, next) => {
     res.status(406).json({ error: error.incompleteData });
 
   try {
+    // find the business record of the user id
+    const business = await Business.find({ _owner: id }, "_id").exec();
+
     // create product
     const product = Product({
-      _owner: id,
+      _owner: business._id,
       item,
       wholesaleCap,
       imageAddress,
