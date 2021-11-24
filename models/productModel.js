@@ -3,9 +3,10 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const productSchema = Schema({
-  _owner: {
+  _business: {
     type: Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Business",
+    required: "The product must be assigned to a business",
   },
 
   imageAddress: {
