@@ -36,3 +36,4 @@ require("../models/inventoryModel");
 require("../models/productModel");
 require("../models/cartModel");
 require("../models/orderModel");
+require("../models/businessModel");
