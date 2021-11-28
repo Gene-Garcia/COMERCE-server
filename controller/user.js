@@ -71,12 +71,16 @@ exports.signin = async (req, res, next) => {
  * This function only creates a new record of the user, it does not authenticate
  * nor authorize the user. The client still needs to login using their new account
  *
+ * additionally, if the userType is a SELLER it will include additional steps
+ * singing up as a seller will create a business record.
+ * The new business record will then reference to the newly created user account.
+ *
+ * whenever the creation of the business account faill, will result to the deletion
+ * of the newly created user account.
+ *
  */
 exports.signup = async (req, res, next) => {
   const { email, username, password, userType, businessData } = req.body;
-
-  console.log(userType);
-  console.log(businessData);
 
   if (!email || !username || !password || !userType)
     res.status(406).json({ error: error.incompleteData });
@@ -84,6 +88,7 @@ exports.signup = async (req, res, next) => {
     try {
       // check if existing
       const check = await User.findOne({ email }, "_id").exec();
+
       if (check) res.status(500).json({ error: error.emailTaken });
       else {
         const newUser = await User.create({
@@ -93,15 +98,15 @@ exports.signup = async (req, res, next) => {
           userType,
         });
 
-        console.log(newUser);
-
         // a SELLER signup will lead to creation of the business account
         if (userType === "SELLER") {
           if (validateBusinessData(businessData)) {
+            // we need to wrap the creation of the business account
+            // in order to catch error raised by mongoose and delete the created account
             const businessRec = await Business.create({
               _owner: newUser._id,
               dateCreated: new Date(),
-              businessData,
+              ...businessData,
             });
 
             if (!businessRec) {
@@ -109,12 +114,11 @@ exports.signup = async (req, res, next) => {
               await User.findOneAndDelete({ _id: newUser._id }).exec();
 
               res.status(500).json({
-                error:
-                  "Our apologies, but we were unable to create your seller account. Please try again. If problem persists, please contact our support.",
+                error: error.sellerError,
               });
             } else res.status(200).json({});
             //
-          } else res.status(406).json({ error: "" });
+          } else res.status(406).json({ error: error.incompleteData });
         } else {
           // The logic, after registration, go back to login, so no need, yet, to send token
           res.status(200).json({});

@@ -45,6 +45,9 @@ const error = {
     "It seems that your reset password request is invalid. To avoid this error, only use the reset password link from the email within 15 minutes.",
 
   incorrectOldPassword: "Password does not match your current password.",
+
+  sellerError:
+    "Our apologies, but we were unable to create your seller account. Please try again. If problem persists, please contact our support.",
 };
 exports.error = error;
 
