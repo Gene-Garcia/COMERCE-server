@@ -26,6 +26,8 @@ const businessSchema = Schema({
     required: "Business owner is required",
   },
 
+  businessEmail: { type: String },
+
   businessName: {
     type: String,
     required: "Name of business is required",
