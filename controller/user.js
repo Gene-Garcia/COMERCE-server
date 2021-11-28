@@ -3,12 +3,17 @@ require("dotenv").config();
 
 // Models
 const User = require("mongoose").model("User");
+const Business = require("mongoose").model("Business");
 
 // Utils
 const { sendMailer } = require("../utils/mailer");
 
 // Custom Error Message
 const { error } = require("../config/errorMessages");
+const {
+  createBusiness,
+  validateBusinessData,
+} = require("../utils/businessHelper");
 
 /*
  * POST Method
@@ -68,7 +73,10 @@ exports.signin = async (req, res, next) => {
  *
  */
 exports.signup = async (req, res, next) => {
-  const { email, username, password, userType } = req.body;
+  const { email, username, password, userType, businessData } = req.body;
+
+  console.log(userType);
+  console.log(businessData);
 
   if (!email || !username || !password || !userType)
     res.status(406).json({ error: error.incompleteData });
@@ -78,10 +86,39 @@ exports.signup = async (req, res, next) => {
       const check = await User.findOne({ email }, "_id").exec();
       if (check) res.status(500).json({ error: error.emailTaken });
       else {
-        await User.create({ email, username, password, userType });
+        const newUser = await User.create({
+          email,
+          username,
+          password,
+          userType,
+        });
 
-        // The logic, after registration, go back to login, so no need, yet, to send token
-        res.status(200).json({});
+        console.log(newUser);
+
+        // a SELLER signup will lead to creation of the business account
+        if (userType === "SELLER") {
+          if (validateBusinessData(businessData)) {
+            const businessRec = await Business.create({
+              _owner: newUser._id,
+              dateCreated: new Date(),
+              businessData,
+            });
+
+            if (!businessRec) {
+              //delete newUser
+              await User.findOneAndDelete({ _id: newUser._id }).exec();
+
+              res.status(500).json({
+                error:
+                  "Our apologies, but we were unable to create your seller account. Please try again. If problem persists, please contact our support.",
+              });
+            } else res.status(200).json({});
+            //
+          } else res.status(406).json({ error: "" });
+        } else {
+          // The logic, after registration, go back to login, so no need, yet, to send token
+          res.status(200).json({});
+        }
       }
     } catch (e) {
       console.log(e.message);
