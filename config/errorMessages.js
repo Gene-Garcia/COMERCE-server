@@ -48,6 +48,9 @@ const error = {
 
   sellerError:
     "Our apologies, but we were unable to create your seller account. Please try again. If problem persists, please contact our support.",
+
+  sellerAccountMissing:
+    "It appears that you do not have a business account in our database. Please try again. If problem persists, please contact our support.",
 };
 exports.error = error;
 
