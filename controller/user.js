@@ -28,6 +28,14 @@ const {
  * It will only be send every request made to the server and
  * will be used by the authorize middleware whenever embedded to a route.
  *
+ * We have now implemented different types of user (SELLER, CUSTOMER).
+ * The logic in this would be able to retrieve any USER record regarless of the userType
+ *
+ * Now using the new paramter, expectedUserType. It will filter the found user record to
+ * determine if that record is appropriate for our request. There are 2 possible request to be made
+ * here by the client (/login/user and /login/seller). The former needs user records that are CUSTOMER, while
+ * the latter wants user records that are SELLER.
+ *
  */
 exports.signin = async (req, res, next) => {
   const { email, password, expectedUserType } = req.body;
@@ -38,7 +46,7 @@ exports.signin = async (req, res, next) => {
       "+password email username _id userType"
     ).exec();
 
-    if (!user || !user.userType || !expectedUserType)
+    if (!user || !expectedUserType)
       res.status(406).json({ error: error.incompleteData });
     else if (user.userType !== expectedUserType)
       res.status(401).json({ error: error.unathorizedAccess });
