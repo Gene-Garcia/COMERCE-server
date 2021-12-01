@@ -4,6 +4,7 @@ const { error } = require("../config/errorMessages");
 // Models
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Business = require("mongoose").model("Business");
 
 /*
  * GET Method
@@ -12,6 +13,13 @@ const Inventory = require("mongoose").model("Inventory");
  * However, the product must have an inventory.onHand value of more than 0.
  *
  * New functionality: sends only certain number of products part in some index computed by pages
+ * the parameters:
+ *  page - will be used to compute on which indexes the products to return.
+ *         the startIndex and endIndex computed will be used to filter all the queried products.
+ *
+ *  limit - is also used in computing the start and end index of products to return.
+ *          logically the limit is the step of products to be returned, then page is used
+ *          increase the step. E.g., for page 1 with step/limit 5 will be 0-4, then page 2 will be 5 - n, so on.
  *
  */
 exports.getAvailableProducts = async (req, res, next) => {
@@ -96,9 +104,12 @@ exports.createProductAndInventory = async (req, res, next) => {
     res.status(406).json({ error: error.incompleteData });
 
   try {
+    // find the business record of the user id
+    const business = await Business.find({ _owner: id }, "_id").exec();
+
     // create product
     const product = Product({
-      _owner: id,
+      _owner: business._id,
       item,
       wholesaleCap,
       imageAddress,

@@ -20,6 +20,10 @@ const populateShipmentDetails = require("../utils/shipmentHelper");
  *    paymentMethod = ""
  *    paymentDetails = {}
  *
+ * This function will save the order to the Order table/schema.
+ * It will also update and reduce the inventory of every ordered product's inventory.
+ * The function also will remove the product from the user's cart, if they are in the cart.
+ *
  */
 exports.placeCustomerOrder = async (req, res, next) => {
   try {

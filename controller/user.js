@@ -3,12 +3,17 @@ require("dotenv").config();
 
 // Models
 const User = require("mongoose").model("User");
+const Business = require("mongoose").model("Business");
 
 // Utils
 const { sendMailer } = require("../utils/mailer");
 
 // Custom Error Message
 const { error } = require("../config/errorMessages");
+const {
+  createBusiness,
+  validateBusinessData,
+} = require("../utils/businessHelper");
 
 /*
  * POST Method
@@ -23,18 +28,28 @@ const { error } = require("../config/errorMessages");
  * It will only be send every request made to the server and
  * will be used by the authorize middleware whenever embedded to a route.
  *
+ * We have now implemented different types of user (SELLER, CUSTOMER).
+ * The logic in this would be able to retrieve any USER record regarless of the userType
+ *
+ * Now using the new paramter, expectedUserType. It will filter the found user record to
+ * determine if that record is appropriate for our request. There are 2 possible request to be made
+ * here by the client (/login/user and /login/seller). The former needs user records that are CUSTOMER, while
+ * the latter wants user records that are SELLER.
+ *
  */
 exports.signin = async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password, expectedUserType } = req.body;
 
   try {
     const user = await User.findOne(
       { email: email },
-      "+password email username _id"
+      "+password email username _id userType"
     ).exec();
 
-    if (user === null || user === undefined)
+    if (!user || !expectedUserType)
       res.status(406).json({ error: error.incompleteData });
+    else if (user.userType !== expectedUserType)
+      res.status(401).json({ error: error.unathorizedAccess });
     else {
       const credentials = await user.comparePassword(password);
       if (credentials) {
@@ -64,22 +79,63 @@ exports.signin = async (req, res, next) => {
  * This function only creates a new record of the user, it does not authenticate
  * nor authorize the user. The client still needs to login using their new account
  *
+ * additionally, if the userType is a SELLER it will include additional steps
+ * singing up as a seller will create a business record.
+ * The new business record will then reference to the newly created user account.
+ *
+ * whenever the creation of the business account faill, will result to the deletion
+ * of the newly created user account.
+ *
  */
 exports.signup = async (req, res, next) => {
-  const { email, username, password } = req.body;
+  const { email, username, password, userType, businessData } = req.body;
 
-  try {
-    // check if existing
-    const check = await User.findOne({ email }, "_id").exec();
-    if (check) res.status(500).json({ error: error.emailTaken });
-    else {
-      await User.create({ email, username, password });
+  if (!email || !username || !password || !userType)
+    res.status(406).json({ error: error.incompleteData });
+  else {
+    try {
+      // check if existing
+      const check = await User.findOne({ email }, "_id").exec();
 
-      // The logic, after registration, go back to login, so no need, yet, to send token
-      res.status(200).json({});
+      if (check) res.status(500).json({ error: error.emailTaken });
+      else {
+        const newUser = await User.create({
+          email,
+          username,
+          password,
+          userType,
+        });
+
+        // a SELLER signup will lead to creation of the business account
+        if (userType === "SELLER") {
+          if (validateBusinessData(businessData)) {
+            // we need to wrap the creation of the business account
+            // in order to catch error raised by mongoose and delete the created account
+            const businessRec = await Business.create({
+              _owner: newUser._id,
+              dateCreated: new Date(),
+              ...businessData,
+            });
+
+            if (!businessRec) {
+              //delete newUser
+              await User.findOneAndDelete({ _id: newUser._id }).exec();
+
+              res.status(500).json({
+                error: error.sellerError,
+              });
+            } else res.status(200).json({});
+            //
+          } else res.status(406).json({ error: error.incompleteData });
+        } else {
+          // The logic, after registration, go back to login, so no need, yet, to send token
+          res.status(200).json({});
+        }
+      }
+    } catch (e) {
+      console.log(e.message);
+      res.status(500).json({ error: error.serverError });
     }
-  } catch (e) {
-    res.status(500).json({ error: error.serverError });
   }
 };
 

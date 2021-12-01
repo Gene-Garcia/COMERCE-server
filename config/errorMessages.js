@@ -1,4 +1,7 @@
 const error = {
+  unathorizedAccess:
+    "We either cannot find your account or this email does not have access to this page. If error persists you may contact our support.",
+
   incompleteData:
     "We cannot process your request with incomplete data. Try again. If error persists please contact our customer support.",
 
@@ -42,6 +45,12 @@ const error = {
     "It seems that your reset password request is invalid. To avoid this error, only use the reset password link from the email within 15 minutes.",
 
   incorrectOldPassword: "Password does not match your current password.",
+
+  sellerError:
+    "Our apologies, but we were unable to create your seller account. Please try again. If problem persists, please contact our support.",
+
+  sellerAccountMissing:
+    "It appears that you do not have a business account in our database. Please try again. If problem persists, please contact our support.",
 };
 exports.error = error;
 
