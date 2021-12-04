@@ -47,7 +47,7 @@ exports.signin = async (req, res, next) => {
     ).exec();
 
     if (!user || !expectedUserType)
-      res.status(406).json({ error: error.incompleteData });
+      res.status(406).json({ error: error.invalidCredentials });
     else if (user.userType !== expectedUserType)
       res.status(401).json({ error: error.unathorizedAccess });
     else {
