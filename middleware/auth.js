@@ -20,6 +20,9 @@ const User = require("mongoose").model("User");
  * A successful authorization will lead to setting the 'user' variable in the request format.
  * The next() will now then proceed to the 'controller' set. Example, router.METHOD(authorize, 'controller').
  * Otherwise, just sends the response.
+ *
+ * This middleware is designed for every type of user to access the browsing of the shop,
+ * placing orders, having a cart, etc. Even if the user is a SELLER
  */
 exports.authorize = async (req, res, next) => {
   try {
@@ -36,11 +39,6 @@ exports.authorize = async (req, res, next) => {
         return res
           .status(404)
           .json({ success: false, error: "User not found" });
-      // check if the jwt key is CUSTOMER as this middleware is for customer users
-      else if (!userType || userType !== "CUSTOMER")
-        return res
-          .status(401)
-          .json({ succes: false, error: "Unathorized access" });
       else {
         // Set the user to the request.user
         // Then, allow express to proceed to the controller of the route
