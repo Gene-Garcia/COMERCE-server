@@ -5,9 +5,10 @@ const router = require("express").Router();
 const { sellerAuthorize } = require("../middleware/auth");
 
 // Controller
-const { dashboard } = require("../controller/seller");
+const { dashboard, findMyProducts } = require("../controller/seller");
 
 //Routes
 router.get("/dashboard", sellerAuthorize, dashboard);
+router.get("/products", sellerAuthorize, findMyProducts);
 
 module.exports = router;

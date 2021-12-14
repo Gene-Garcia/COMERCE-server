@@ -250,6 +250,3 @@ exports.createInventory = async (req, res, next) => {};
 
 // products of req.user._id
 exports.findProduct = async (req, res, next) => {};
-
-// products and inventories
-exports.findMyProducts = async (req, res, next) => {};
