@@ -1,5 +1,6 @@
 // Custom error messages
 const { error } = require("../config/errorMessages");
+const { validateNewProductData } = require("../utils/productHelper");
 
 // Models
 const Product = require("mongoose").model("Product");
@@ -169,6 +170,75 @@ exports.getProduct = async (req, res, next) => {
     } catch (e) {
       res.status(500).json({ error: error.serverError });
     }
+  }
+};
+
+/*
+ * POST, SELLER-auth Method
+ *
+ * Creates the product record referenced to the logged in seller user
+ * then an inventory record will be created in reference to that product
+ */
+exports.uploadProductWithInventory = async (req, res, next) => {
+  const data = req.body.data;
+
+  try {
+    if (!validateNewProductData(data) || !req.user)
+      return res.status(406).json({ error: error.incompleteData });
+
+    // validate if req.user has a business record. this is just an extra measure
+    const business = await Business.findOne({ _owner: req.user._id });
+
+    if (!business) return res.status(406).json({ error: error.incompleteData });
+
+    const {
+      item,
+      retailPrice,
+      wholesalePrice,
+      wholesaleCap,
+      description,
+      inventory,
+      imageAddress,
+
+      brand,
+      category,
+      keywords,
+    } = data;
+
+    // create product
+    const product = Product({
+      _business: business._id,
+      imageAddress,
+      item,
+      wholesaleCap,
+      wholesalePrice,
+      retailPrice,
+      brand,
+      keywords,
+      category,
+      description,
+    });
+
+    // create inventory
+    const prodInventory = Inventory({
+      dateStored: Date.now(),
+      quantity: inventory,
+      onHand: inventory,
+    });
+
+    // update reference
+    product._inventory.push(prodInventory);
+
+    // save
+    await prodInventory.save();
+    await product.save();
+
+    res
+      .status(201)
+      .json({ message: `Succesfully added new product: ${product.item}` });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: error.serverError });
   }
 };
 
