@@ -14,6 +14,6 @@ const {
 //Routes
 router.get("/dashboard", sellerAuthorize, dashboard);
 router.get("/products", sellerAuthorize, findMyProducts);
-router.get("/product/id", sellerAuthorize, findMyProduct);
+router.get("/product/:id", sellerAuthorize, findMyProduct);
 
 module.exports = router;
