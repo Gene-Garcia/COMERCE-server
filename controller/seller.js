@@ -70,3 +70,32 @@ exports.findMyProducts = async (req, res, next) => {
     res.status(500).json({ error: error.serverError });
   }
 };
+
+// products of req.user._id
+/*
+ * GET, SELLER-auth Method
+ *
+ * retrieves and send the product information of product id
+ * in the paramater of the current seller user
+ */
+exports.findMyProduct = async (req, res, next) => {
+  const productId = req.params.id;
+
+  try {
+    if (!productId)
+      return res.status(406).json({ error: error.incompleteData });
+
+    // validate, or maybe not because it would be redundant
+
+    const product = await Product.findById(productId, "")
+      .populate("inventory")
+      .exec();
+
+    if (!product) return res.status(406).json({ error: error.productNotFound });
+
+    return res.status(200).json({ product });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: error.serverError });
+  }
+};

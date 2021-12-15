@@ -247,6 +247,3 @@ exports.createProduct = async (req, res, next) => {};
 
 // creates an inventory record of product._id
 exports.createInventory = async (req, res, next) => {};
-
-// products of req.user._id
-exports.findProduct = async (req, res, next) => {};
