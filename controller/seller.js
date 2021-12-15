@@ -88,7 +88,7 @@ exports.findMyProduct = async (req, res, next) => {
     // validate, or maybe not because it would be redundant
 
     const product = await Product.findById(productId, "")
-      .populate("inventory")
+      .populate("_inventory")
       .exec();
 
     if (!product) return res.status(406).json({ error: error.productNotFound });
