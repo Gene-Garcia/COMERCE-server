@@ -6,8 +6,14 @@
  */
 exports.validateBusinessData = (data) => {
   // logo, businessname, tagline, established
-  const { businessName, tagline, established, logo, businessEmail } = data;
+  const {
+    businessName,
+    tagline,
+    established,
+    businessLogoAddress,
+    businessEmail,
+  } = data;
 
-  if (!businessName || !established) return false;
+  if (!businessName || !established || !businessLogoAddress) return false;
   return true;
 };

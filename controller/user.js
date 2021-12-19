@@ -10,10 +10,7 @@ const { sendMailer } = require("../utils/mailer");
 
 // Custom Error Message
 const { error } = require("../config/errorMessages");
-const {
-  createBusiness,
-  validateBusinessData,
-} = require("../utils/businessHelper");
+const { validateBusinessData } = require("../utils/businessHelper");
 
 /*
  * POST Method
@@ -47,7 +44,7 @@ exports.signin = async (req, res, next) => {
     ).exec();
 
     if (!user || !expectedUserType)
-      res.status(406).json({ error: error.incompleteData });
+      res.status(406).json({ error: error.invalidCredentials });
     else if (user.userType !== expectedUserType)
       res.status(401).json({ error: error.unathorizedAccess });
     else {
@@ -62,7 +59,22 @@ exports.signin = async (req, res, next) => {
           maxAge: process.env.JWT_EXPIRATION,
         });
 
-        res.status(200).json({
+        // query the business information and return the user and business info
+        if (expectedUserType === "SELLER") {
+          const business = await Business.findOne(
+            { _owner: user._id },
+            "businessEmail businessName businessLogoAddress"
+          );
+
+          return res.status(200).json({
+            user,
+            business,
+            token: jwt,
+          });
+        }
+
+        // user is not SELLER
+        return res.status(200).json({
           user,
           token: jwt,
         });
@@ -125,7 +137,7 @@ exports.signup = async (req, res, next) => {
                 error: error.sellerError,
               });
             } else res.status(200).json({});
-            //
+            // delete also the account record here
           } else res.status(406).json({ error: error.incompleteData });
         } else {
           // The logic, after registration, go back to login, so no need, yet, to send token

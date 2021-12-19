@@ -33,7 +33,26 @@ const productSchema = Schema({
     required: "Retail price is required",
   },
 
-  description: String,
+  brand: {
+    type: String,
+    required: "Brand name is required",
+  },
+
+  keywords: [
+    {
+      type: String,
+    },
+  ],
+
+  category: {
+    type: String,
+    required: "Category is required",
+  },
+
+  description: {
+    type: String,
+    required: "Description is required",
+  },
 
   rating: [
     {

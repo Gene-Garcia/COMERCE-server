@@ -27,7 +27,7 @@ const error = {
     "We apologize but this product seems to be removed or out stock. You may check out our other products, thank you.",
 
   serverError:
-    "We're very sorry but something went wrong in our system. Please try again. If errors persist please contact our customer support.",
+    "We're very sorry but something went wrong in our system. Please refresh the page or try again later. If errors persist please contact our customer support.",
 
   invalidCredentials:
     "You have entered invalid credentials, email and password can't be found.",
