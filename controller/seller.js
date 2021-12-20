@@ -1,6 +1,7 @@
 // Models
 const Business = require("mongoose").model("Business");
 const Product = require("mongoose").model("Product");
+const Inventory = require("mongoose").model("Inventory");
 
 // utils
 const { error } = require("../config/errorMessages");
@@ -97,5 +98,52 @@ exports.findMyProduct = async (req, res, next) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET, SELLER-auth Method
+ *
+ * retries and send all product's inventory of this user
+ */
+exports.findMyInventories = async (req, res, next) => {
+  try {
+    if (!req.user) return res.status(406).json({ error: error.incompleteData });
+
+    // find and verify business
+    const business = await Business.findOne(
+      { _owner: requser_id },
+      "_id"
+    ).exec();
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    let products = await Product.find(
+      { _business: business._id },
+      "item _inventory"
+    )
+      .populate("_inventory")
+      .exec();
+
+    if (!products || products.length <= 0)
+      return res.status(404).json({ error: error.productsNotFound });
+
+    // rebuild object
+    products = products.map((e) => {
+      const onHand = e._inventory
+        .map((f) => f.onHand)
+        .reduce((prev, curr) => prev + curr, 0);
+
+      const inventory = e._inventory
+        .map((f) => f.quantity)
+        .reduce((prev, curr) => prev + curr, 0);
+
+      return { ...e._doc, inventory, onHand };
+    });
+
+    res.status(200).json({ products });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json;
   }
 };
