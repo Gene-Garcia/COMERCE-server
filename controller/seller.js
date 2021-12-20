@@ -112,7 +112,7 @@ exports.findMyInventories = async (req, res, next) => {
 
     // find and verify business
     const business = await Business.findOne(
-      { _owner: requser_id },
+      { _owner: req.user._id },
       "_id"
     ).exec();
     if (!business)
@@ -120,7 +120,7 @@ exports.findMyInventories = async (req, res, next) => {
 
     let products = await Product.find(
       { _business: business._id },
-      "item _inventory"
+      "item _inventory imageAddress"
     )
       .populate("_inventory")
       .exec();
@@ -144,6 +144,6 @@ exports.findMyInventories = async (req, res, next) => {
     res.status(200).json({ products });
   } catch (e) {
     console.error(e);
-    res.status(500).json;
+    res.status(500).json({ error: error.serverError });
   }
 };
