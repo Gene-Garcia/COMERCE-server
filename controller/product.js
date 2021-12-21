@@ -242,8 +242,50 @@ exports.uploadProductWithInventory = async (req, res, next) => {
   }
 };
 
-// returns product id
-exports.createProduct = async (req, res, next) => {};
+/*
+ * PATCH, SELLER-auth
+ *
+ * creates new Inventory record, and then reference and save it to
+ * the product.
+ */
+exports.addInventory = async (req, res, next) => {
+  const { productId, onHand, inventory } = req.body;
 
-// creates an inventory record of product._id
-exports.createInventory = async (req, res, next) => {};
+  try {
+    if (!req.user) return res.status(406).json({ error: error.incompleteData });
+
+    if (!productId || !onHand || !inventory)
+      return res.status(406).json({ error: error.incompleteData });
+
+    if (isNaN(onHand) || isNaN(inventory))
+      return res.status(406).json({
+        error:
+          "Invalid form data. Please double check the inventory information and try again. If errors persists contact our customer support.",
+      });
+
+    // find the product
+    const product = await Product.findById(productId, "_inventory item").exec();
+    if (!product) return res.status(406).json({ error: error.productNotFound });
+
+    // create inventory
+    const onHandNum = parseInt(onHand);
+    const inventoryNum = parseInt(inventory);
+    const inventoryRec = Inventory({
+      dateStored: Date.now(),
+      quantity: inventoryNum,
+      onHand: onHandNum,
+    });
+    await inventoryRec.save();
+
+    // reference new inventory to product
+    product._inventory.push(inventoryRec);
+    await product.save();
+
+    return res.status(201).json({
+      message: `Successfully added new inventory with a quantity of ${inventoryRec.quantity} to item ${product.item}`,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: error.serverError });
+  }
+};
