@@ -10,12 +10,14 @@ const {
   getAvailableProducts,
   getProduct,
   uploadProductWithInventory,
+  addInventory,
 } = require("../controller/product");
 
 // routes
 router.route("/available/:limit/:page").get(getAvailableProducts);
 router.route("/item/:pId").get(getProduct);
 router.post("/upload", sellerAuthorize, uploadProductWithInventory);
+router.patch("/inventory/add", sellerAuthorize, addInventory);
 // router.route("/shortcut/create").post(authorize, createProductAndInventory);
 router.route("/shortcut/create").post(createProductAndInventory);
 

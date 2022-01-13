@@ -51,6 +51,9 @@ const error = {
 
   sellerAccountMissing:
     "It appears that you do not have a business account in our database. Please try again. If problem persists, please contact our support.",
+
+  productsNotFound:
+    "We are not able to find any products in your account. Please try again or contact our support. Our apologies.",
 };
 exports.error = error;
 
