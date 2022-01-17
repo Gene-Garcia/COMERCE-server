@@ -63,6 +63,11 @@ const orderSchema = Schema({
         default: false,
       },
 
+      status: {
+        type: String,
+        required: "Product order status is required",
+      },
+
       _product: {
         type: Schema.Types.ObjectId,
         ref: "Product",
