@@ -6,6 +6,7 @@ const { orderStatus } = require("../config/status");
 const Order = require("mongoose").model("Order");
 const Product = require("mongoose").model("Product");
 const Cart = require("mongoose").model("Cart");
+const Business = require("mongoose").model("Business");
 
 // utils
 const populatePayment = require("../utils/paymentHelper");
@@ -52,7 +53,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
         _customer: userId,
         orderDate: Date.now(),
         ETADate: etaDate.setDate(etaDate.getDate() + 5),
-        status: orderStatus[2],
+        status: orderStatus[0], // placed
         shippingFee: null,
         shipmentDetails: {},
         paymentMethod: "",
@@ -82,6 +83,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
       else {
         // rebuild products
         order.orderedProducts = products.map((e) => ({
+          status: orderStatus[0],
           _product: e._id,
           priceAtPoint: e.retailPrice,
           rated: false,
