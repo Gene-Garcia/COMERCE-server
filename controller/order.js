@@ -159,3 +159,66 @@ exports.customerOrders = async (req, res, next) => {
     res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * GET METHOD, Seller auth
+ *
+ * A seller method placed inside this order.js file, instead of seller.js. However
+ * it will still be called in the seller.js routes file
+ *
+ * This controller will retrieve all of the Placed ordered products of the current user-seller account.
+ * Given that the Order data status is Placed, and the selected ordered product item(s) status is Placed.
+ */
+exports.sellerPendingOrders = async (req, res) => {
+  try {
+    if (!req.user) return res.status(404).json({ error: error.userNotFound });
+
+    // find business
+    const business = await Business.findOne(
+      { _owner: req.user._id }, //
+      "_id"
+    ).exec();
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    // get the orders all of orders where
+    // orderedproducts.status == PLACED
+    // where orderedproducts._product(populate)._business == business._id
+    let orders = await Order.find(
+      { status: orderStatus[0] },
+      "-paymentInformation -_customer"
+    ).populate({
+      path: "orderedProducts",
+      select: "status _product priceAtPoint quantity",
+      match: { status: orderStatus[0] },
+      populate: {
+        path: "_product",
+        select: "_business item imageAddress",
+        match: { _business: business._id },
+      },
+    });
+
+    // THIS LOGIC IS NOT FOR THIS GET METHOD, IT SHOULD BE FOR PATCH METHOD
+    // // ordered products _products that are null are products not owned by this user/seller
+    // orders = orders.map((order) => ({
+    //   ...order._doc,
+    //   orderedProducts: order.orderedProducts.map((product) => ({
+    //     ...product._doc,
+    //     status: product._product ? orderStatus[1] : product.status,
+    //   })),
+    // }));
+
+    // remove ordered product where _product is null
+    orders = orders.map((order) => ({
+      ...order._doc,
+      orderedProducts: order.orderedProducts.filter(
+        (orderedProduct) => orderedProduct._product
+      ),
+    }));
+
+    return res.status(200).json({ orders });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: error.serverError });
+  }
+};
