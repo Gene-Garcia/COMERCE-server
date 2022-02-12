@@ -4,7 +4,7 @@ const Product = require("mongoose").model("Product");
 
 // constants
 const { error } = require("../config/errorMessages");
-const { orderStatus } = require("../config/status");
+const { orderStatuses } = require("../config/status");
 
 /*
  * GET Method
@@ -32,7 +32,7 @@ exports.getUserToRateProduct = async (req, res, next) => {
     let orders = await Order.find(
       {
         _customer: userId,
-        status: orderStatus[3],
+        status: orderStatuses.REVIEW.toUpperCase(), // only those for REVIEW orders
       },
       "status orderDate ETADate orderedProducts.rated orderedProducts._product"
     ).populate({
@@ -121,7 +121,7 @@ exports.rateOrderProduct = async (req, res, next) => {
       });
 
       // update status of order depending on 'allRated'
-      if (allRated) order.status = orderStatus[3];
+      if (allRated) order.status = orderStatuses.FULFILLED.toUpperCase();
 
       // find product and insert rating
       // COMMENT WILL NOT YET BE IMPLEMENTED

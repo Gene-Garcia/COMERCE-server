@@ -1,6 +1,6 @@
 // customer error messages
 const { error } = require("../config/errorMessages");
-const { orderStatus } = require("../config/status");
+const { orderStatuses } = require("../config/status");
 
 // models
 const Order = require("mongoose").model("Order");
@@ -53,7 +53,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
         _customer: userId,
         orderDate: Date.now(),
         ETADate: etaDate.setDate(etaDate.getDate() + 5),
-        status: orderStatus[0], // placed
+        status: orderStatuses.PLACED.toUpperCase(), // set default status of an order
         shippingFee: null,
         shipmentDetails: {},
         paymentMethod: "",
@@ -81,9 +81,9 @@ exports.placeCustomerOrder = async (req, res, next) => {
       if (products.length != items.length)
         res.status(406).json({ error: error.productNotFound });
       else {
-        // rebuild products
+        // build orderedProducts
         order.orderedProducts = products.map((e) => ({
-          status: orderStatus[0],
+          status: orderStatuses.PLACED.toUpperCase(),
           _product: e._id,
           priceAtPoint: e.retailPrice,
           rated: false,
@@ -182,15 +182,15 @@ exports.sellerPendingOrders = async (req, res) => {
       return res.status(404).json({ error: error.sellerAccountMissing });
 
     // get the orders all of orders where
-    // orderedproducts.status == PLACED
+    // orderedproducts.status == PLACED, i.e., not yet shipped to warehouse
     // where orderedproducts._product(populate)._business == business._id
     let orders = await Order.find(
-      { status: orderStatus[0] },
+      { status: orderStatuses.PLACED.toUpperCase() },
       "-paymentInformation -_customer"
     ).populate({
       path: "orderedProducts",
       select: "status _product priceAtPoint quantity",
-      match: { status: orderStatus[0] },
+      match: { status: orderStatuses.PLACED.toUpperCase() },
       populate: {
         path: "_product",
         select: "_business item imageAddress",

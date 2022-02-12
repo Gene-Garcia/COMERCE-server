@@ -7,10 +7,20 @@
  *
  * status of being logistics to warehouse will be updated by the logistics module
  */
-exports.orderStatus = [
-  "Placed",
-  "Logistics",
-  "Warehouse",
-  "Review",
-  "Fulfilled",
-];
+// exports.orderStatus = [
+//   "Placed",
+//   "Logistics",
+//   "Warehouse",
+//   "Review",
+//   "Fulfilled",
+// ];
+
+// IN ALL DEPENDECIES OR USER OF THIS VARIABLE. TRANSFORM THE VALUE TO UPPERCASE. MAKE IT CASE INSENSITIVE.
+
+exports.orderStatuses = {
+  PLACED: "PLACED",
+  LOGISTICS: "LOGISTICS",
+  WAREHOUSE: "WAREHOUSE",
+  REVIEW: "REVIEW",
+  FULFILLED: "FULFILLED",
+};
