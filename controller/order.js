@@ -208,13 +208,20 @@ exports.sellerPendingOrders = async (req, res) => {
     //   })),
     // }));
 
-    // remove ordered product where _product is null
+    /*
+     * remove ordered product where _product is null because that
+     * means the ordered item is not for this seller
+     */
     orders = orders.map((order) => ({
       ...order._doc,
       orderedProducts: order.orderedProducts.filter(
         (orderedProduct) => orderedProduct._product
       ),
+      checked: false, // this field is for the frontend checkbox status
     }));
+
+    // then do a check if orderedProducts is null, dont remove from orders
+    orders = orders.filter((order) => order.orderedProducts.length > 0);
 
     return res.status(200).json({ orders });
   } catch (e) {
