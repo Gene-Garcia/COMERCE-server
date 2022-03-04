@@ -186,7 +186,7 @@ exports.sellerPendingOrders = async (req, res) => {
     // where orderedproducts._product(populate)._business == business._id
     let orders = await Order.find(
       { status: orderStatuses.PLACED.toUpperCase() },
-      "-paymentInformation -_customer"
+      "status orderedProducts shipmentDetails paymentMethod"
     ).populate({
       path: "orderedProducts",
       select: "status _product priceAtPoint quantity",
