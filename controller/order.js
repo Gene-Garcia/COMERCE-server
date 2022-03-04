@@ -188,6 +188,7 @@ exports.sellerPendingOrders = async (req, res) => {
       { status: orderStatuses.PLACED.toUpperCase() },
       "status orderedProducts shipmentDetails paymentMethod"
     ).populate({
+      // this is an unecessary population
       path: "orderedProducts",
       select: "status _product priceAtPoint quantity",
       match: { status: orderStatuses.PLACED.toUpperCase() },
@@ -226,6 +227,54 @@ exports.sellerPendingOrders = async (req, res) => {
     return res.status(200).json({ orders });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: error.serverError });
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET METHOD, Seller auth
+ *
+ * Retrieves the order of the order id for modal information display.
+ */
+exports.findOrderForSeller = async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+
+    if (!orderId) return res.status(406).json({ error: error.incompleteData });
+
+    // find business
+    const business = await Business.findOne(
+      { _owner: req.user._id }, //
+      "_id"
+    ).exec();
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    // find orderId
+    // find if the product is this business
+    let order = await Order.findById(
+      orderId,
+      "orderedProducts  orderDate ETADate shipmentDetails paymentMethod"
+    ).populate({
+      path: "orderedProducts",
+      select: "priceAtPoint quantity",
+      populate: {
+        path: "_product",
+        select: "item imageAddress",
+        match: { _business: business._id },
+      },
+    });
+
+    // filter those products not of this business
+    order.orderedProducts = order.orderedProducts.filter(
+      (orderedProduct) => orderedProduct._product
+    );
+
+    if (!order) return res.status(406).json({ error: error.orderNotFound });
+
+    return res.status(200).json({ order: order });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
   }
 };

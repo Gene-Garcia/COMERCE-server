@@ -54,6 +54,9 @@ const error = {
 
   productsNotFound:
     "We are not able to find any products in your account. Please try again or contact our support. Our apologies.",
+
+  orderNotFound:
+    "Our system was unable find this customer order. Please try again, if problems persist you may coordinate with out support.",
 };
 exports.error = error;
 

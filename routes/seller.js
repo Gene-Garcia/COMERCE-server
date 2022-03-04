@@ -11,7 +11,10 @@ const {
   findMyProduct,
   findMyInventories,
 } = require("../controller/seller");
-const { sellerPendingOrders } = require("../controller/order");
+const {
+  sellerPendingOrders,
+  findOrderForSeller,
+} = require("../controller/order");
 
 //Routes
 router.get("/dashboard", sellerAuthorize, dashboard);
@@ -19,5 +22,5 @@ router.get("/products", sellerAuthorize, findMyProducts);
 router.get("/product/:id", sellerAuthorize, findMyProduct);
 router.get("/inventories", sellerAuthorize, findMyInventories);
 router.get("/orders/pending", sellerAuthorize, sellerPendingOrders);
-
+router.get("/orders/order/:orderId", sellerAuthorize, findOrderForSeller);
 module.exports = router;
