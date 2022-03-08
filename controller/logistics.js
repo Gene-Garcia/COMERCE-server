@@ -158,10 +158,6 @@ exports.shipProductOrders = async (req, res) => {
         upsert: false,
       },
     }));
-    console.log("-----");
-    console.log(inventoryBulkArray);
-    console.log("-----");
-    console.log(orderBulkArray);
 
     // bulk update
     const inventoryRes = await Inventory.bulkWrite(inventoryBulkArray);
