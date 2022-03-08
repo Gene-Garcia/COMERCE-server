@@ -20,6 +20,8 @@ const Inventory = require("mongoose").model("Inventory");
  * Nonetheless, it will iterate an orders list. [{orderId: "", productIds: ["", "", ""]}, {...}, ...]
  */
 exports.shipProductOrders = async (req, res) => {
+  let message = "";
+
   try {
     const { orders: toShip } = req.body;
 
@@ -77,6 +79,7 @@ exports.shipProductOrders = async (req, res) => {
       // iterate through each ordered products of an order
       order.orderedProducts.forEach((ordered) => {
         // only modify the ordered products for the current seller user
+
         if (toShipProductIds.includes(JSON.stringify(ordered._product._id))) {
           let orderedQuantity = ordered.quantity;
 
@@ -130,8 +133,16 @@ exports.shipProductOrders = async (req, res) => {
         // check all there status, if atleast 1 has a status of PLACED then the entire order cannot be set to LOGISTICS
         // we check using PLACED, because there would be instances where other products in the same order
         // has already been shipped (LOGISTICS) by the seller and would have already the status of WAREHOUSE
-        if (ordered.status.toUpperCase() === orderStatuses.PLACED.toUpperCase())
+        if (
+          ordered.status.toUpperCase() === orderStatuses.PLACED.toUpperCase()
+        ) {
           isAllLogistics = false;
+          message =
+            message +
+            " Products " +
+            ordered._product.item +
+            " has insufficient quantity.";
+        }
       });
 
       // identify whether to place the entire order as LOGISTICS
@@ -171,7 +182,13 @@ exports.shipProductOrders = async (req, res) => {
     const inventoryRes = await Inventory.bulkWrite(inventoryBulkArray);
     const orderRes = await Order.bulkWrite(orderBulkArray);
 
-    return res.status(200).json({ inventoryRes, orderRes });
+    if (inventoryRes.result.writeErrors.length > 0)
+      message += `An was encountered in updating the inventory`;
+
+    if (orderRes.result.writeErrors.length > 0)
+      message += `An was encountered in updating the order record`;
+
+    return res.status(200).json({ message, inventoryRes, orderRes });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });
