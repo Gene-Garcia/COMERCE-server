@@ -57,6 +57,9 @@ const error = {
 
   orderNotFound:
     "Our system was unable find this customer order. Please try again, if problems persist you may coordinate with out support.",
+
+  invalidOrdersToShip:
+    "The orders to ship we recieve is invalid. Please refresh the page or try again later. If problems persists please contact our support.",
 };
 exports.error = error;
 
