@@ -43,7 +43,10 @@ exports.shipProductOrders = async (req, res) => {
     )
       .populate({
         path: "orderedProducts",
-        select: "status _product quantity",
+        // select all because we need to retain those data after bulk writing
+        // the problem encountered was that updating order does perform PATCH logic,
+        // but updating the array of orderedProducts and setting only the status performs
+        // a PUT logic where every other field of orderedProducts is replaced only with that status
 
         populate: {
           path: "_product",
@@ -151,9 +154,14 @@ exports.shipProductOrders = async (req, res) => {
         filter: { _id: order._id },
         update: {
           status: order.status,
-          orderedProducts: {
-            status: order.orderedProducts.status,
-          },
+          orderedProducts: order.orderedProducts.map((e) => ({
+            rated: e.rated,
+            _id: e._id,
+            status: e.status,
+            _product: e._product._id,
+            priceAtPoint: e.priceAtPoint,
+            quantity: e.quantity,
+          })),
         },
         upsert: false,
       },
