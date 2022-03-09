@@ -11,7 +11,7 @@ const Business = require("mongoose").model("Business");
 // utils
 const populatePayment = require("../utils/paymentHelper");
 const populateShipmentDetails = require("../utils/shipmentHelper");
-
+const util = require("util");
 /*
  * POST Method
  *
@@ -167,7 +167,7 @@ exports.customerOrders = async (req, res, next) => {
  * it will still be called in the seller.js routes file
  *
  * This controller will retrieve all of the Placed ordered products of the current user-seller account.
- * Given that the Order data status is Placed, and the selected ordered product item(s) status is Placed.
+ * Notably, the orderedproduct status must have a status of PLACED. The status of the parent will be disregarded for this
  */
 exports.sellerPendingOrders = async (req, res) => {
   try {
@@ -181,23 +181,36 @@ exports.sellerPendingOrders = async (req, res) => {
     if (!business)
       return res.status(404).json({ error: error.sellerAccountMissing });
 
-    // get the orders all of orders where
-    // orderedproducts.status == PLACED, i.e., not yet shipped to warehouse
-    // where orderedproducts._product(populate)._business == business._id
+    /*
+     * get the orders all of orders where
+     * Just to narrow order selection
+     * Only get orders whose are either PLACED, LOGISTICS, or WAREHOUSE.
+     * these 3 status indicate the order is not yet receive by the customer, hence,
+     * some of the products that comes with it will either have these 3 status.
+     * If the order is already RATED or FULFILLED then this would indicate that the
+     * Logistic or shipment process is already out of question or done for this order
+     * where orderedproducts._product(populate)._business == business._id
+     */
     let orders = await Order.find(
-      { status: orderStatuses.PLACED.toUpperCase() },
+      {
+        status: {
+          $in: [
+            orderStatuses.PLACED,
+            orderStatuses.LOGISTICS,
+            orderStatuses.WAREHOUSE,
+          ],
+        },
+      },
       "status orderedProducts shipmentDetails paymentMethod"
     ).populate({
-      // this is an unecessary population
-      path: "orderedProducts",
-      select: "status _product priceAtPoint quantity",
-      match: { status: orderStatuses.PLACED.toUpperCase() },
-      populate: {
-        path: "_product",
-        select: "_business item imageAddress",
-        match: { _business: business._id },
+      path: "orderedProducts._product",
+      select: "_business item imageAddress",
+      match: {
+        _business: business._id,
       },
     });
+
+    console.log(util.inspect(orders, false, null, true /* enable colors */));
 
     // THIS LOGIC IS NOT FOR THIS GET METHOD, IT SHOULD BE FOR PATCH METHOD
     // // ordered products _products that are null are products not owned by this user/seller
@@ -211,12 +224,21 @@ exports.sellerPendingOrders = async (req, res) => {
 
     /*
      * remove ordered product where _product is null because that
-     * means the ordered item is not for this seller
+     * means that any ordered item is not for this seller
+     *
+     * And
+     *
+     * another condition to filter only those products with an orderedProduct status of PLACED
+     * We are unable to filter orderedProducts === PLACED in mongo query because
+     * it does find orderedProducts objects with status of PLACED but includes the entire array
+     * with it
      */
     orders = orders.map((order) => ({
       ...order._doc,
       orderedProducts: order.orderedProducts.filter(
-        (orderedProduct) => orderedProduct._product
+        (orderedProduct) =>
+          orderedProduct._product &&
+          orderedProduct.status.toUpperCase() === orderStatuses.PLACED
       ),
       checked: false, // this field is for the frontend checkbox status
     }));
