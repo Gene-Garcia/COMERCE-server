@@ -8,6 +8,7 @@ const { authorize } = require("../middleware/auth");
 const User = require("mongoose").model("User");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Order = require("mongoose").model("Order");
 
 // controller
 
@@ -142,6 +143,24 @@ route.patch("/bulk", async (req, res) => {
   ]);
 
   res.status(200).json({ result });
+});
+
+route.get("/embedded", async (req, res) => {
+  /*
+   * the orderedProducts.status : PLACED does work
+   * however its just that the other array objects contains different status
+   * So mongoose selects the entire order that has ANY orderedProducts.status of PLACED
+   * and will include the other object in that array
+   */
+  const orders = await Order.find(
+    {
+      status: "LOGISTICS",
+      "orderedProducts.status": "PLACED",
+    },
+    "orderedProducts status"
+  ).exec();
+
+  return res.status(200).json({ orders });
 });
 
 module.exports = route;
