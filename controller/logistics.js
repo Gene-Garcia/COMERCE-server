@@ -33,7 +33,8 @@ exports.shipProductOrders = async (req, res) => {
      * Basically, an order and its entire product will be shipped.
      * However, only those with sufficient inventory will be set as LOGISTICS
      *
-     * When all product status are LOGISTICS, then the order status is going to be LOGISTICS
+     * When atleast one product is LOGISTICS, then the entire order will be LOGISTICS even if other products
+     * are still PLACED
      *
      * It is said the populate is more performant than doing individual async calls
      */
@@ -69,25 +70,42 @@ exports.shipProductOrders = async (req, res) => {
     // iterate through each orders to perform the inventory manipulations
     orders.forEach((order) => {
       // variable to hold whenever every product of the order is all logistics
-      let isAllLogistics = true;
+      let isOneLogistics = true;
 
       // the collection of product ids for the seller products
-      const toShipProductIds = toShip
-        .find((e) => JSON.stringify(e.orderId) === JSON.stringify(order._id))
-        .productIds.map((productId) => JSON.stringify(productId));
+      // these product ids are ensured to be only those ordered products
+      // whose status are PLACED.
+      // Because when the fronted renders the UI for shipping products, it
+      // makes an API request to get all orders with orderedProducts whose status is LOGISTICS
+      const toShipProductIds = toShip.find(
+        (e) => JSON.stringify(e.orderId) === JSON.stringify(order._id)
+      ).productIds;
 
-      // iterate through each ordered products of an order
-      order.orderedProducts.forEach((ordered) => {
-        // only modify the ordered products for the current seller user
+      // iterate through each product Ids to ship and find their corresponding orderedProduct._product
+      toShipProductIds.forEach((productId) => {
+        // find orderedProduct
+        const orderedProductIndex = order.orderedProducts.findIndex(
+          (orderedProduct) => {
+            console.log(JSON.stringify(orderedProduct._product._id));
+            console.log(JSON.stringify(productId));
+            return (
+              JSON.stringify(orderedProduct._product._id) ===
+              JSON.stringify(productId)
+            );
+          }
+        );
 
-        if (toShipProductIds.includes(JSON.stringify(ordered._product._id))) {
-          let orderedQuantity = ordered.quantity;
+        console.log(orderedProductIndex);
+        console.log(order.orderedProducts[orderedProductIndex]);
 
-          // a temporary array to hold the inventory to be updated for this product
-          let tempInventoryBulk = [];
+        let orderedQuantity =
+          order.orderedProducts[orderedProductIndex].quantity;
 
-          // iterate each product and its _inventory to determine whether the onHands and orderedQuantity matches
-          ordered._product._inventory.every((inventory) => {
+        // a temporary array to hold the inventory to be updated for this product
+        let tempInventoryBulk = [];
+
+        order.orderedProducts[orderedProductIndex]._product._inventory.every(
+          (inventory) => {
             const temp = {
               _id: "",
               onHand: 0,
@@ -115,38 +133,45 @@ exports.shipProductOrders = async (req, res) => {
             tempInventoryBulk.push(temp);
 
             return true;
-          });
-
-          // if ordered quantity is sufficient with inventory, then save the
-          // inventories (inside the temp) in the inventory bulk
-          if (orderedQuantity <= 0) {
-            inventoryBulkUpdate = inventoryBulkUpdate.concat(tempInventoryBulk);
-
-            // set the product status as logistics
-            ordered.status = orderStatuses.LOGISTICS;
           }
-          // if the iteration reaches to the end without the quantity being 0
-          // then the product will not be set to logistics
-        }
+        );
 
-        // on every orderedproduct regardless of seller owner
-        // check all there status, if atleast 1 has a status of PLACED then the entire order cannot be set to LOGISTICS
-        // we check using PLACED, because there would be instances where other products in the same order
-        // has already been shipped (LOGISTICS) by the seller and would have already the status of WAREHOUSE
+        // if ordered quantity is sufficient with inventory, then save the
+        // inventories (inside the temp) in the inventory bulk
+        if (orderedQuantity <= 0) {
+          inventoryBulkUpdate = inventoryBulkUpdate.concat(tempInventoryBulk);
+
+          // set the product status as logistics
+          order.orderedProducts[orderedProductIndex].status =
+            orderStatuses.LOGISTICS;
+
+          // this indicate that atleast one product in the order is for LOGISTICS
+          isOneLogistics = true;
+        }
+        // if the iteration reaches to the end without the quantity being 0
+        // then the product will not be set to logistics
+
+        // satisfying this condition indicates that the current product is not shippable due to low inventory
         if (
-          ordered.status.toUpperCase() === orderStatuses.PLACED.toUpperCase()
+          order.orderedProducts[orderedProductIndex].status.toUpperCase() ===
+          orderStatuses.PLACED.toUpperCase()
         ) {
-          isAllLogistics = false;
+          // s
           message =
             message +
             " Products " +
-            ordered._product.item +
+            order.orderedProducts[orderedProductIndex]._product.item +
             " has insufficient quantity.";
+        } else {
         }
       });
 
       // identify whether to place the entire order as LOGISTICS
-      if (isAllLogistics) order.status = orderStatuses.LOGISTICS;
+      if (isOneLogistics) {
+        order.status = orderStatuses.LOGISTICS;
+
+        message = `${message} Order ${order._id} status has been set to as 'Logistics'.`;
+      }
 
       // save the order to the bulk order to be updated
       orderBulkUpdate.push(order);
