@@ -4,7 +4,7 @@ const Product = require("mongoose").model("Product");
 
 // constants
 const { error } = require("../config/errorMessages");
-const { orderStatus } = require("../config/status");
+const { orderStatuses } = require("../config/status");
 
 /*
  * GET Method
@@ -32,7 +32,7 @@ exports.getUserToRateProduct = async (req, res, next) => {
     let orders = await Order.find(
       {
         _customer: userId,
-        status: orderStatus[2],
+        status: orderStatuses.REVIEW.toUpperCase(), // only those for REVIEW orders
       },
       "status orderDate ETADate orderedProducts.rated orderedProducts._product"
     ).populate({
@@ -76,14 +76,14 @@ exports.getUserToRateProduct = async (req, res, next) => {
  * PATCH Method
  *
  * req.product, req.comment, & req.rating
- * 
+ *
  * The patch function that updates the Product model from the user's order.orderedProducts
  * It also updates the user Order model's status, and its order.orderedProducts.rated of the current product
  * to be rated.
- * 
+ *
  * Subsequently, the function will iterate through all the orderedProducts to check if each rated are all true,
  * then, if all true than will change the order.status to Fullfilled.
- * 
+ *
  * the comment part is not yet implemented.
  *
  */
@@ -121,7 +121,7 @@ exports.rateOrderProduct = async (req, res, next) => {
       });
 
       // update status of order depending on 'allRated'
-      if (allRated) order.status = orderStatus[3];
+      if (allRated) order.status = orderStatuses.FULFILLED.toUpperCase();
 
       // find product and insert rating
       // COMMENT WILL NOT YET BE IMPLEMENTED

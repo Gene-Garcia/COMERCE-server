@@ -21,6 +21,7 @@ const orderSchema = Schema({
   status: {
     type: String,
     required: "Status of order is required",
+    uppercase: true,
   },
 
   shippingFee: {
@@ -61,6 +62,12 @@ const orderSchema = Schema({
       rated: {
         type: Boolean,
         default: false,
+      },
+
+      status: {
+        type: String,
+        required: "Product order status is required",
+        uppercase: true,
       },
 
       _product: {

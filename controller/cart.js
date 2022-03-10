@@ -267,12 +267,10 @@ exports.removeFromCart = async (req, res, next) => {
       else {
         await Cart.deleteOne({ _id: cartItem._id }).exec();
 
-        res
-          .status(200)
-          .json({
-            removedCart: cartItem._id,
-            message: `Cart ${cartItem._id} removed from your cart.`,
-          });
+        res.status(200).json({
+          removedCart: cartItem._id,
+          message: `Cart ${cartItem._id} removed from your cart.`,
+        });
       }
     }
   } catch (e) {

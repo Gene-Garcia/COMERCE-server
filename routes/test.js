@@ -8,6 +8,7 @@ const { authorize } = require("../middleware/auth");
 const User = require("mongoose").model("User");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Order = require("mongoose").model("Order");
 
 // controller
 
@@ -89,6 +90,77 @@ route.get("/pi", async (req, res) => {
   } catch (error) {
     res.status(500).json(error.message);
   }
+});
+
+route.patch("/callback/save", async (req, res) => {
+  const product = "61b8522e29689f0708a82767";
+
+  Product.findById(product, "item _inventory").exec(async (err, product) => {
+    console.log(product);
+    product.item = "Samsung A53 5G 2022";
+
+    // // does not save in inventory reference
+    // product._inventory[0].quantity = 500;
+
+    // we can now perform async functions inside through callback/then
+    const inventories = await Inventory.find({
+      _id: { $in: product._inventory },
+    }).exec();
+
+    // we can save a document from a callback
+    // await product.save();
+    return res.status(200).json({ inventories, product });
+  });
+});
+
+route.patch("/bulk", async (req, res) => {
+  const one = Product();
+  one._id = "61b8522e29689f0708a82767";
+  one.item = "Samsung A53 5G 2022 UPDATED BULK";
+
+  const two = Product();
+  two._id = "61b8a980ebffe000ec6191cd";
+  two.item = "iPhone 13 PRO 1TB UPDATED BULK";
+  const products = [one, two];
+
+  console.log(one);
+
+  const result = await Product.bulkWrite([
+    {
+      updateOne: {
+        filter: { _id: one._id },
+        update: { item: one.item },
+        upsert: false,
+      },
+    },
+    {
+      updateOne: {
+        filter: { _id: two._id },
+        update: { item: two.item },
+        upsert: false,
+      },
+    },
+  ]);
+
+  res.status(200).json({ result });
+});
+
+route.get("/embedded", async (req, res) => {
+  /*
+   * the orderedProducts.status : PLACED does work
+   * however its just that the other array objects contains different status
+   * So mongoose selects the entire order that has ANY orderedProducts.status of PLACED
+   * and will include the other object in that array
+   */
+  const orders = await Order.find(
+    {
+      status: "LOGISTICS",
+      "orderedProducts.status": "PLACED",
+    },
+    "orderedProducts status"
+  ).exec();
+
+  return res.status(200).json({ orders });
 });
 
 module.exports = route;

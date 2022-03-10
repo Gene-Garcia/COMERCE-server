@@ -1,16 +1,17 @@
 // customer error messages
 const { error } = require("../config/errorMessages");
-const { orderStatus } = require("../config/status");
+const { orderStatuses } = require("../config/status");
 
 // models
 const Order = require("mongoose").model("Order");
 const Product = require("mongoose").model("Product");
 const Cart = require("mongoose").model("Cart");
+const Business = require("mongoose").model("Business");
 
 // utils
 const populatePayment = require("../utils/paymentHelper");
 const populateShipmentDetails = require("../utils/shipmentHelper");
-
+const util = require("util");
 /*
  * POST Method
  *
@@ -52,7 +53,7 @@ exports.placeCustomerOrder = async (req, res, next) => {
         _customer: userId,
         orderDate: Date.now(),
         ETADate: etaDate.setDate(etaDate.getDate() + 5),
-        status: orderStatus[2],
+        status: orderStatuses.PLACED.toUpperCase(), // set default status of an order
         shippingFee: null,
         shipmentDetails: {},
         paymentMethod: "",
@@ -80,8 +81,9 @@ exports.placeCustomerOrder = async (req, res, next) => {
       if (products.length != items.length)
         res.status(406).json({ error: error.productNotFound });
       else {
-        // rebuild products
+        // build orderedProducts
         order.orderedProducts = products.map((e) => ({
+          status: orderStatuses.PLACED.toUpperCase(),
           _product: e._id,
           priceAtPoint: e.retailPrice,
           rated: false,
@@ -155,5 +157,146 @@ exports.customerOrders = async (req, res, next) => {
   } catch (e) {
     console.log(e);
     res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET METHOD, Seller auth
+ *
+ * A seller method placed inside this order.js file, instead of seller.js. However
+ * it will still be called in the seller.js routes file
+ *
+ * This controller will retrieve all of the Placed ordered products of the current user-seller account.
+ * Notably, the orderedproduct status must have a status of PLACED. The status of the parent will be disregarded for this
+ */
+exports.sellerPendingOrders = async (req, res) => {
+  try {
+    if (!req.user) return res.status(404).json({ error: error.userNotFound });
+
+    // find business
+    const business = await Business.findOne(
+      { _owner: req.user._id }, //
+      "_id"
+    ).exec();
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    /*
+     * get the orders all of orders where
+     * Just to narrow order selection
+     * Only get orders whose are either PLACED, LOGISTICS, or WAREHOUSE.
+     * these 3 status indicate the order is not yet receive by the customer, hence,
+     * some of the products that comes with it will either have these 3 status.
+     * If the order is already RATED or FULFILLED then this would indicate that the
+     * Logistic or shipment process is already out of question or done for this order
+     * where orderedproducts._product(populate)._business == business._id
+     */
+    let orders = await Order.find(
+      {
+        status: {
+          $in: [
+            orderStatuses.PLACED,
+            orderStatuses.LOGISTICS,
+            orderStatuses.WAREHOUSE,
+          ],
+        },
+      },
+      "status orderedProducts shipmentDetails paymentMethod"
+    ).populate({
+      path: "orderedProducts._product",
+      select: "_business item imageAddress",
+      match: {
+        _business: business._id,
+      },
+    });
+
+    console.log(util.inspect(orders, false, null, true /* enable colors */));
+
+    // THIS LOGIC IS NOT FOR THIS GET METHOD, IT SHOULD BE FOR PATCH METHOD
+    // // ordered products _products that are null are products not owned by this user/seller
+    // orders = orders.map((order) => ({
+    //   ...order._doc,
+    //   orderedProducts: order.orderedProducts.map((product) => ({
+    //     ...product._doc,
+    //     status: product._product ? orderStatus[1] : product.status,
+    //   })),
+    // }));
+
+    /*
+     * remove ordered product where _product is null because that
+     * means that any ordered item is not for this seller
+     *
+     * And
+     *
+     * another condition to filter only those products with an orderedProduct status of PLACED
+     * We are unable to filter orderedProducts === PLACED in mongo query because
+     * it does find orderedProducts objects with status of PLACED but includes the entire array
+     * with it
+     */
+    orders = orders.map((order) => ({
+      ...order._doc,
+      orderedProducts: order.orderedProducts.filter(
+        (orderedProduct) =>
+          orderedProduct._product &&
+          orderedProduct.status.toUpperCase() === orderStatuses.PLACED
+      ),
+      checked: false, // this field is for the frontend checkbox status
+    }));
+
+    // then do a check if orderedProducts is null, dont remove from orders
+    orders = orders.filter((order) => order.orderedProducts.length > 0);
+
+    return res.status(200).json({ orders });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET METHOD, Seller auth
+ *
+ * Retrieves the order of the order id for modal information display.
+ */
+exports.findOrderForSeller = async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+
+    if (!orderId) return res.status(406).json({ error: error.incompleteData });
+
+    // find business
+    const business = await Business.findOne(
+      { _owner: req.user._id }, //
+      "_id"
+    ).exec();
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    // find orderId
+    // find if the product is this business
+    let order = await Order.findById(
+      orderId,
+      "orderedProducts  orderDate ETADate shipmentDetails paymentMethod"
+    ).populate({
+      path: "orderedProducts",
+      select: "priceAtPoint quantity",
+      populate: {
+        path: "_product",
+        select: "item imageAddress",
+        match: { _business: business._id },
+      },
+    });
+
+    // filter those products not of this business
+    order.orderedProducts = order.orderedProducts.filter(
+      (orderedProduct) => orderedProduct._product
+    );
+
+    if (!order) return res.status(406).json({ error: error.orderNotFound });
+
+    return res.status(200).json({ order: order });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
   }
 };
