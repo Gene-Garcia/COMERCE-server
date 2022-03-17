@@ -10,6 +10,8 @@ const {
   findMyProducts,
   findMyProduct,
   findMyInventories,
+  getAllSellerOrders,
+  getProductsOfOrder,
 } = require("../controller/seller");
 const {
   sellerPendingOrders,
@@ -24,6 +26,12 @@ router.get("/product/:id", sellerAuthorize, findMyProduct);
 router.get("/inventories", sellerAuthorize, findMyInventories);
 router.get("/orders/pending", sellerAuthorize, sellerPendingOrders);
 router.get("/orders/order/:orderId", sellerAuthorize, findOrderForSeller);
+router.get("/orders/master/:status", sellerAuthorize, getAllSellerOrders);
+router.get(
+  "/orders/master/products/:orderId",
+  sellerAuthorize,
+  getProductsOfOrder
+);
 
 router.patch("/logistics/ship", sellerAuthorize, shipProductOrders);
 module.exports = router;
