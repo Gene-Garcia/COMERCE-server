@@ -166,6 +166,9 @@ exports.getAllSellerOrders = async (req, res) => {
       "_id"
     ).exec();
 
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
     let orders = await Order.find(
       { status: status },
       `shipmentDetails.firstName shipmentDetails.lastName 
@@ -204,14 +207,12 @@ exports.getAllSellerOrders = async (req, res) => {
  * retrieves the ordered products of an :orderId of the current user
  */
 exports.getProductsOfOrder = async (req, res) => {
-  const owner = "61b8a903ebffe000ec6191c3";
-
   try {
     const orderId = req.params.orderId;
 
     if (!orderId) return res.status(406).json({ error: error.incompleteData });
 
-    const business = await Business.findOne({ _owner: owner });
+    const business = await Business.findOne({ _owner: req.user._id });
 
     if (!business)
       return res.status(404).json({ error: error.sellerAccountMissing });
