@@ -203,4 +203,42 @@ exports.getAllSellerOrders = async (req, res) => {
  *
  * retrieves the ordered products of an :orderId of the current user
  */
-exports.getProductsOfOrder = async (req, res) => {};
+exports.getProductsOfOrder = async (req, res) => {
+  const owner = "61b8a903ebffe000ec6191c3";
+
+  try {
+    const orderId = req.params.orderId;
+
+    if (!orderId) return res.status(406).json({ error: error.incompleteData });
+
+    const business = await Business.findOne({ _owner: owner });
+
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    let order = await Order.findById(
+      orderId,
+      `orderedProducts.orderedProducts orderedProducts.status 
+      orderedProducts.priceAtPoint orderedProducts.quantity`
+    ).populate({
+      path: "orderedProducts._product",
+      select: "_business imageAddress item",
+      match: { _business: business._id },
+    });
+
+    // logically, the order id sent is reference to an order with orderedProducts to this seller
+    // so we only need to do filtering on orderedProducts to get only the orderedProducts of this seller
+    // it is guaranteed that atleast 1 product from the order will be returned
+    order = {
+      ...order._doc,
+      orderedProducts: order.orderedProducts.filter(
+        (product) => product._product
+      ),
+    };
+
+    return res.status(200).json({ order });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
