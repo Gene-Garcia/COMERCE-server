@@ -2,6 +2,7 @@
 const Business = require("mongoose").model("Business");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Order = require("mongoose").model("Order");
 
 // utils
 const { error } = require("../config/errorMessages");
@@ -147,3 +148,59 @@ exports.findMyInventories = async (req, res, next) => {
     res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * GET, Seller-auth method
+ *
+ * retrieves all the orders this seller. the status of order will be based on route/:status
+ */
+exports.getAllSellerOrders = async (req, res) => {
+  try {
+    const status = req.params.status.toUpperCase();
+
+    if (!status) return res.status(406).json({ error: error.incompleteData });
+
+    // find business
+    const business = await Business.findOne(
+      { _owner: req.user._id },
+      "_id"
+    ).exec();
+
+    let orders = await Order.find(
+      { status: status },
+      `shipmentDetails.firstName shipmentDetails.lastName 
+      shipmentDetails.province shipmentDetails.cityMunicipality 
+      shipmentDetails.barangay status ETADate orderDate 
+      paymentMethod orderedProducts._product 
+      orderedProducts.priceAtPoint orderedProducts.quantity` // this works
+    )
+      .populate({
+        path: "orderedProducts._product",
+        select: "_business ", // this works
+        match: { _business: business._id }, // this works too
+      })
+      .exec();
+
+    // filter null orderedProducts._product because those are products not to this seller
+    orders = orders.map((order) => ({
+      ...order._doc,
+      orderedProducts: order.orderedProducts.filter(
+        (orderedProduct) => orderedProduct._product
+      ),
+    }));
+
+    // filter null orders where orderedProducts is empty which would mean that the order has no products for this seller
+    orders = orders.filter((order) => order.orderedProducts.length > 0);
+    return res.status(200).json({ orders });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET, seller-auth method
+ *
+ * retrieves the ordered products of an :orderId of the current user
+ */
+exports.getProductsOfOrder = async (req, res) => {};
