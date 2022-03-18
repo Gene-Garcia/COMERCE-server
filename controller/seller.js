@@ -219,7 +219,8 @@ exports.getProductsOfOrder = async (req, res) => {
 
     let order = await Order.findById(
       orderId,
-      `orderedProducts.orderedProducts orderedProducts.status 
+      `shippingFee 
+      orderedProducts.orderedProducts orderedProducts.status 
       orderedProducts.priceAtPoint orderedProducts.quantity`
     ).populate({
       path: "orderedProducts._product",
