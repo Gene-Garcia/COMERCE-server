@@ -139,7 +139,8 @@ exports.signup = async (req, res, next) => {
             } else res.status(200).json({});
             // delete also the account record here
           } else res.status(406).json({ error: error.incompleteData });
-        } else {
+        } 
+        else {
           // The logic, after registration, go back to login, so no need, yet, to send token
           res.status(200).json({});
         }
