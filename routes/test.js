@@ -9,6 +9,7 @@ const User = require("mongoose").model("User");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
 const Order = require("mongoose").model("Order");
+const Deliverer = require("mongoose").model("Deliverer");
 
 // controller
 
@@ -161,6 +162,33 @@ route.get("/embedded", async (req, res) => {
   ).exec();
 
   return res.status(200).json({ orders });
+});
+
+route.get("/deliverer", async (req, res) => {
+  const d = Deliverer();
+
+  d.firstName = "John";
+  d.lastName = "Doe";
+  d.contactInformation.streetAddress = "l1 b14 jade st juana 1";
+  d.contactInformation.barangay = "san francisco";
+  d.contactInformation.cityMunicipality = "binan";
+  d.contactInformation.province = "laguna";
+  d.contactInformation.primaryNumber = "09053660668";
+  d.contactInformation.secondaryNumber = "09053660668";
+  d.vehicleInformation.maker = "Honda";
+  d.vehicleInformation.plateNumber = "531ssCD";
+  d.vehicleInformation.classification = "Type 1";
+  d.vehicleInformation.registeredOwner = "Name of Owner";
+  d.vehicleInformation.fuel = "Gasoline";
+  d.vehicleInformation.engineCapacity = 1000;
+  d.vehicleInformation.transmission = "Manual";
+
+  console.log(d);
+
+  const result = await d.save();
+
+  console.log(result);
+  res.status(200).json({ d, result });
 });
 
 module.exports = route;

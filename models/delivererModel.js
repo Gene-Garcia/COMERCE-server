@@ -5,6 +5,7 @@ const delivererSchema = Schema({
   _user: {
     type: Schema.Types.ObjectId,
     ref: "User",
+    required: "No user record was referenced",
   },
 
   firstName: {
@@ -40,12 +41,12 @@ const delivererSchema = Schema({
     primaryNumber: {
       type: String,
       required: "Primary number is required",
-      match: ["^09\\d{9}$", "Invalid phone number"],
+      match: [/^09\d{9}$/, "Invalid primary phone number"],
     },
 
     secondaryNumber: {
       type: String,
-      match: ["^09\\d{9}$", "Invalid phone number"],
+      match: [/^09\d{9}$/, "Invalid primary phone number"],
     },
   },
 
@@ -58,7 +59,7 @@ const delivererSchema = Schema({
     plateNumber: {
       type: String,
       required: "Plate number is required",
-      match: ["^\\d{3}[A-Z]{4}$", "Invalid plate number"],
+      match: [/^\d{3}[A-Z]{4}$/, "Invalid plate number"],
     },
 
     classification: {
