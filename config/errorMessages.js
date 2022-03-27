@@ -60,6 +60,9 @@ const error = {
 
   invalidOrdersToShip:
     "The orders to ship we recieve is invalid. Please refresh the page or try again later. If problems persists please contact our support.",
+
+  delivererError:
+    "We apologise but we have encountered a problem in saving your logistics account. Please refresh the page or try again later. If errors persist please contact our tech support.",
 };
 exports.error = error;
 
