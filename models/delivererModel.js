@@ -5,7 +5,9 @@ const delivererSchema = Schema({
   _user: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: "No user record was referenced",
+    // do not make it required so that we will be able to save the record first
+    // and check if it was a success. Only then will we save the user and reference it again
+    // required: "No user record was referenced",
   },
 
   firstName: {
@@ -41,12 +43,12 @@ const delivererSchema = Schema({
     primaryNumber: {
       type: String,
       required: "Primary number is required",
-      match: [/^09\d{9}$/, "Invalid primary phone number"],
+      match: [/^9\d{9}$/, "Invalid primary phone number"],
     },
 
     secondaryNumber: {
       type: String,
-      match: [/^09\d{9}$/, "Invalid primary phone number"],
+      match: [/^9\d{9}$/, "Invalid primary phone number"],
     },
   },
 
