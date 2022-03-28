@@ -64,8 +64,10 @@ exports.signin = async (req, res, next) => {
           maxAge: process.env.JWT_EXPIRATION,
         });
 
-        // query the business information and return the user and business info
+        // Sign up for SELLER
         if (expectedUserType === "SELLER") {
+          // query the business information and return the user and business info
+
           const business = await Business.findOne(
             { _owner: user._id },
             "businessEmail businessName businessLogoAddress"
@@ -78,6 +80,18 @@ exports.signin = async (req, res, next) => {
           });
         }
 
+        // Sign up for LOGISTICS
+        if (expectedUserType === "LOGISTICS") {
+          // validate if this user has a deliverer record
+          const isRegistered = await Deliverer.exists({ _user: user._id });
+
+          if (!isRegistered)
+            return res
+              .status(404)
+              .json({ error: error.logisticsAccountNotFound });
+        }
+
+        // Custome user sign up
         // user is not SELLER
         return res.status(200).json({
           user,
@@ -189,7 +203,7 @@ exports.signup = async (req, res, next) => {
 
           let success = await Deliverer.exists({ _id: deliverer._id });
 
-          // failed 
+          // failed
           if (!success) {
             // do not create user record
 
