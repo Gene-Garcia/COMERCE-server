@@ -47,8 +47,25 @@ const logisticsSchema = Schema({
     // not required because date ended will only be added after a succesfully pick up delivery or customer delivery
   },
 
+  success: {
+    proof: {
+      type: String, // for now a key that is declared and recognizable only by the customer or the warehouse
+    },
+  },
+
+  failed: {
+    attempts: {
+      type: Number,
+      min: 2,
+    },
+
+    reason: {
+      type: String,
+    },
+  },
+
   // ADD FIELDS FOR PROOF OF DELIVERY and ON FAILED DELIVERIES
 });
 
-// save to mongoose
+// save to mongoosezaxaa
 mongoose.model("Logistics", logisticsSchema);
