@@ -1,6 +1,11 @@
 /*
  * PLACED - default status aftering placing the order
- * LOGISTICS - status set when the seller ships the product out for delivery; ready for pick up
+ * LOGISTICS - status set when the seller selects an order and its seller-products to be shipped out
+ * // an orderd product with status of LOGISTICS does not indicate a ready to be picked up order
+ * // because the seller will only know if they have sufficient inventory recorded when they click the SHIP ORDER button
+ * // in the necessary page.
+ *
+ * PACKED - a PACKED ordered product indicates that the user have packed the order (with attached waybill)
  * PICK_UP - deliverer pick up to be delivered to the warehouse
  * WAREHOUSE - deliverer succesful delivery of invididual ordered products to the warehouse; ready for customer delivery
  * DELIVERY - deliverer chooses an order where all of the products is in the warehouse
@@ -15,6 +20,7 @@
 exports.orderStatuses = {
   PLACED: "PLACED",
   LOGISTICS: "LOGISTICS",
+  PACKED: "PACKED",
 
   // order status used by deliverer
   PICK_UP: "SELLER_PICK_UP",
