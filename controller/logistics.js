@@ -219,3 +219,24 @@ exports.shipProductOrders = async (req, res) => {
     return res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * GET Method, Logistics auth
+ *
+ * A logistics user method that returns all ordered products that are LOGISTICS.
+ * Basically all orders that has a status of LOGISTICS is guaranteed to have atleast 1
+ * ordered products' status to be LOGISTISCS
+ */
+exports.getForPickUpProducts = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      status: orderStatuses.LOGISTICS,
+      "orderedProducts.status": orderStatuses.LOGISTICS,
+    }).exec();
+
+    return res.status(200).json({ orders });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
