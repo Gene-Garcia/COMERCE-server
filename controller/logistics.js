@@ -229,10 +229,31 @@ exports.shipProductOrders = async (req, res) => {
  */
 exports.getForPickUpProducts = async (req, res) => {
   try {
-    const orders = await Order.find({
-      status: orderStatuses.LOGISTICS,
-      "orderedProducts.status": orderStatuses.LOGISTICS,
-    }).exec();
+    let orders = await Order.find(
+      {
+        status: orderStatuses.LOGISTICS,
+        "orderedProducts.status": orderStatuses.LOGISTICS,
+      },
+      "ETADate status orderedProducts.status orderedProducts._product"
+    )
+      .populate({
+        path: "orderedProducts._product",
+        select: "item _business",
+
+        populate: {
+          path: "_business",
+          select: "businessName",
+        },
+      })
+      .exec();
+
+    // we will filter every order orderedproducts to retain only products with status of PACKED
+    orders = orders.map((order) => ({
+      ...order._doc,
+      orderedProducts: order.orderedProducts.filter(
+        (product) => product.status === orderStatuses.LOGISTICS
+      ),
+    }));
 
     return res.status(200).json({ orders });
   } catch (e) {
