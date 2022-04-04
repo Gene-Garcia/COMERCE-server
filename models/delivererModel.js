@@ -10,47 +10,45 @@ const delivererSchema = Schema({
     // required: "No user record was referenced",
   },
 
-  firstName: {
-    type: String,
-    required: "First name is required",
-  },
+  // IN USER MODEL
+  // firstName: {
+  //   type: String,
+  //   required: "First name is required",
+  // },
 
-  lastName: {
-    type: String,
-    required: "Last name is required",
-  },
+  // lastName: {
+  //   type: String,
+  //   required: "Last name is required",
+  // },
 
-  contactInformation: {
-    streetAddress: {
-      type: String,
-    },
-
-    barangay: {
-      type: String,
-      required: "Barangay is required",
-    },
-
-    cityMunicipality: {
-      type: String,
-      required: "City or municipality is required",
-    },
-
-    province: {
-      type: String,
-      required: "Province is required",
-    },
-
-    primaryNumber: {
-      type: String,
-      required: "Primary number is required",
-      match: [/^9\d{9}$/, "Invalid primary phone number"],
-    },
-
-    secondaryNumber: {
-      type: String,
-      match: [/^9\d{9}$/, "Invalid primary phone number"],
-    },
-  },
+  // contactInformation: {
+  //   // IN USER MODEL
+  //   // streetAddress: {
+  //   //   type: String,
+  //   // },
+  //   // barangay: {
+  //   //   type: String,
+  //   //   required: "Barangay is required",
+  //   // },
+  //   // cityMunicipality: {
+  //   //   type: String,
+  //   //   required: "City or municipality is required",
+  //   // },
+  //   // province: {
+  //   //   type: String,
+  //   //   required: "Province is required",
+  //   // },
+  //   // IN USER MODEL
+  //   // primaryNumber: {
+  //   //   type: String,
+  //   //   required: "Primary number is required",
+  //   //   match: [/^9\d{9}$/, "Invalid primary phone number"],
+  //   // },
+  //   // secondaryNumber: {
+  //   //   type: String,
+  //   //   match: [/^9\d{9}$/, "Invalid primary phone number"],
+  //   // },
+  // },
 
   vehicleInformation: {
     maker: {
@@ -89,6 +87,22 @@ const delivererSchema = Schema({
     transmission: {
       type: String,
       required: "Car transmission type is required",
+    },
+  },
+
+  // set up later by COMERCE
+  areaResponsibility: {
+    code: {
+      type: String,
+    },
+
+    rotation: {
+      startTime: {
+        type: Date,
+      },
+      endTime: {
+        type: Date,
+      },
     },
   },
 });

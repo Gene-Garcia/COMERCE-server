@@ -23,7 +23,9 @@ const businessSchema = Schema({
   _owner: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: "Business owner is required",
+    // do not make it required so that we will be able to save the record first
+    // and check if it was a success. Only then will we save the user and reference it again
+    // required: "No user record was referenced",
   },
 
   businessEmail: { type: String },
@@ -47,6 +49,22 @@ const businessSchema = Schema({
   dateCreated: {
     type: Date,
     required: true,
+  },
+
+  // Set up later by the SELLER
+  pickUpAddress: {
+    street: {
+      type: String,
+    },
+    barangay: {
+      type: String,
+    },
+    townMunicipality: {
+      type: String,
+    },
+    province: {
+      type: String,
+    },
   },
 });
 
