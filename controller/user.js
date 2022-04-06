@@ -119,7 +119,8 @@ exports.signin = async (req, res, next) => {
  *
  */
 exports.signup = async (req, res, next) => {
-  const { email, username, password, userType } = req.body;
+  console.log(req.body);
+  const { firstName, lastName, email, username, password, userType } = req.body;
 
   // SELLER account sign up
   const { businessData } = req.body;
@@ -127,7 +128,7 @@ exports.signup = async (req, res, next) => {
   // LOGISTICS account sign up
   const { vehicleData, delivererData } = req.body;
 
-  if (!email || !username || !password || !userType)
+  if (!firstName || !lastName || !email || !username || !password || !userType)
     res.status(406).json({ error: error.incompleteData });
   else {
     try {
@@ -137,6 +138,7 @@ exports.signup = async (req, res, next) => {
       if (check) res.status(500).json({ error: error.emailTaken });
       else {
         const newUser = User({
+          fullName: { firstName, lastName },
           email,
           username,
           password,
@@ -235,7 +237,6 @@ exports.signup = async (req, res, next) => {
         }
       }
     } catch (e) {
-      console.log(e.message);
       res.status(500).json({ error: error.serverError });
     }
   }

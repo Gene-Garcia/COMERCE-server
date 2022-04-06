@@ -46,7 +46,6 @@ const userSchema = mongoose.Schema({
     },
   ],
 
-  // set up for later for non-SELLER and LOGISTICS user
   fullName: {
     firstName: {
       type: String,
@@ -57,8 +56,9 @@ const userSchema = mongoose.Schema({
     },
   },
 
-  // address of the person
   /*
+   * will be set up later
+   * 
    * So for a seller this is not considered as their
    * business and pick-up address
    */
