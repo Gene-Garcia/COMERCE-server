@@ -6,7 +6,7 @@
  * // in the necessary page.
  *
  * PACKED - a PACKED ordered product indicates that the user have packed the order (with attached waybill)
- * PICK_UP - deliverer pick up to be delivered to the warehouse
+ * PICK_UP - deliverer has picked up and to be delivered to the warehouse
  * WAREHOUSE - deliverer succesful delivery of invididual ordered products to the warehouse; ready for customer delivery
  * DELIVERY - deliverer chooses an order where all of the products is in the warehouse
  * REVIEW - status when the order is received by the customer. The product is now pending for user review
