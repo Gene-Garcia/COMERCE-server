@@ -12,6 +12,7 @@ const {
   findMyInventories,
   getAllSellerOrders,
   getProductsOfOrder,
+  getOtherBusinessInformation,
 } = require("../controller/seller");
 const {
   sellerPendingOrders,
@@ -34,4 +35,11 @@ router.get(
 );
 
 router.patch("/logistics/ship", sellerAuthorize, shipProductOrders);
+
+router.get(
+  "/business/other-information",
+  sellerAuthorize,
+  getOtherBusinessInformation
+);
+
 module.exports = router;

@@ -244,3 +244,27 @@ exports.getProductsOfOrder = async (req, res) => {
     return res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * GET, seller-auth method
+ *
+ * Retrieves the business record information of the seller
+ * Data sent are business email, established, date created
+ */
+exports.getOtherBusinessInformation = async (req, res) => {
+  try {
+    // find business
+    const business = await Business.findOne(
+      { _owner: req.user._id },
+      "businessEmail established dateCreated"
+    ).exec();
+
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    return res.status(200).json({ ...business._doc });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
