@@ -6,6 +6,7 @@ const Order = require("mongoose").model("Order");
 
 // utils
 const { error } = require("../config/errorMessages");
+const { getNonNullValues } = require("../utils/objectHelper");
 
 /*
  * This controller-route is designed for the seller dashboard landing page.
@@ -263,6 +264,47 @@ exports.getOtherBusinessInformation = async (req, res) => {
       return res.status(404).json({ error: error.sellerAccountMissing });
 
     return res.status(200).json({ ...business._doc });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * PATCH, seller-auth
+ *
+ * Updates the either the business information or business address.
+ *
+ * Business seller settings card will make both make a request to this card.
+ */
+exports.updateBusinessInformation = async (req, res) => {
+  const { businessInfo, address } = req.body.data;
+
+  try {
+    // if (!toUpdate) return res.status(406).json({ error: incompleteData });
+
+    // find business based on user
+    let business = await Business.findOne(
+      { _owner: req.user._id },
+      "businessName established tagline businessLogoAddress pickUpAddress"
+    ).exec();
+
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    business = {
+      ...business._doc,
+      ...getNonNullValues(businessInfo),
+      pickUpAddress: {
+        ...business.pickUpAddress,
+        ...getNonNullValues(address),
+      },
+    };
+    console.log(business);
+    const result = await Business.updateOne(business);
+    console.log(result);
+
+    return res.status(201).json({ business });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });
