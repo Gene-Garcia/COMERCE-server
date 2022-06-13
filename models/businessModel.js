@@ -59,7 +59,7 @@ const businessSchema = Schema({
     barangay: {
       type: String,
     },
-    townMunicipality: {
+    cityMunicipality: {
       type: String,
     },
     province: {
