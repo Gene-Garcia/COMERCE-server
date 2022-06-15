@@ -332,7 +332,7 @@ exports.updateBusinessInformation = async (req, res) => {
 exports.getForPackOrders = async (req, res) => {
   try {
     // find business record first
-    const business = await Business.findOne({ _owner: reqq.user._id });
+    const business = await Business.findOne({ _owner: req.user._id });
 
     if (!business)
       return res.status(406).json({ error: error.sellerAccountMissing });
