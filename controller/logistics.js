@@ -223,6 +223,8 @@ exports.shipProductOrders = async (req, res) => {
 /*
  * GET Method, Logistics auth
  *
+ * DEPRECATED, NEED UPDATED
+ *
  * A logistics user method that returns all ordered products that are LOGISTICS.
  * Basically all orders that has a status of LOGISTICS is guaranteed to have atleast 1
  * ordered products' status to be LOGISTISCS

@@ -14,6 +14,7 @@ const {
   getProductsOfOrder,
   getOtherBusinessInformation,
   updateBusinessInformation,
+  getForPackOrders,
 } = require("../controller/seller");
 const {
   sellerPendingOrders,
@@ -36,6 +37,7 @@ router.get(
 );
 
 router.patch("/logistics/ship", sellerAuthorize, shipProductOrders);
+router.get("/logistics/for/pack", sellerAuthorize, getForPackOrders);
 
 router.get(
   "/business/other-information",

@@ -6,6 +6,7 @@ const Order = require("mongoose").model("Order");
 
 // utils
 const { error } = require("../config/errorMessages");
+const { orderStatuses } = require("../config/status");
 const { getNonNullValues } = require("../utils/objectHelper");
 
 /*
@@ -305,6 +306,66 @@ exports.updateBusinessInformation = async (req, res) => {
     console.log(result);
 
     return res.status(201).json({ business });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET, seller-auth
+ *
+ * Returns all orders that
+ *  1. order.status is LOGISTICS
+ *
+ *  the _product is not a product of this user/seller
+ *  2. order.orderedProducts._product is NOT NULL
+ *
+ *  3. order.orderedProducts._product._business is THIS USER
+ *
+ *  not all order.status == LOGISTICS have all orderedProducts.status == LOGISTICS
+ *  4. order.orderedProducts.status is LOGISTICS
+ *
+ *  its products could all have been filtered out
+ *  5. order.orderedProducts.length is GREATER THAN 0
+ */
+exports.getForPackOrders = async (req, res) => {
+  try {
+    // find business record first
+    const business = await Business.findOne({ _owner: reqq.user._id });
+
+    if (!business)
+      return res.status(406).json({ error: error.sellerAccountMissing });
+
+    // get all orders that is LOGISTICS (but an orders is LOGISTICS even if only orderedProduct is LOGISTICS)
+    let orders = await Order.find(
+      { status: orderStatuses.LOGISTICS },
+      `orderDate ETADate status 
+      shipmentDetails.firstName shipmentDetails.lastName
+      orderedProducts.status orderedProducts._product orderedProducts.quantity`
+    )
+      .populate({
+        path: "orderedProducts._product",
+        select: "item _business",
+        // makes _product:null if orderedProduct._product is not to this business
+        match: { _business: business._id },
+      })
+      .exec();
+
+    // filter both orderedProducts of an order, and order
+    orders = orders.filter((order) => {
+      // filter out orderedProducts.status != LOGISTICS and those _products is null
+      order.orderedProducts = order.orderedProducts.filter(
+        (ordered) =>
+          ordered.status === orderStatuses.LOGISTICS && ordered._product != null
+      );
+
+      // filter out order.orderedProducts whose length is 0 or null
+      // orderedProducts == 0 could mean that its other orders have been filtered out from above
+      return order.orderedProducts.length > 0;
+    });
+
+    return res.status(200).json({ orders });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });

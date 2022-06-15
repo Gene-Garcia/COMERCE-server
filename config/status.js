@@ -5,7 +5,8 @@
  * // because the seller will only know if they have sufficient inventory recorded when they click the SHIP ORDER button
  * // in the necessary page.
  *
- * PACKED - a PACKED ordered product indicates that the user have packed the order (with attached waybill)
+ * PACKED - a PACKED ordered product indicates that the user have packed the order (with attached waybill). Done on the creation of  waybill.
+ * but an order will remain PACKED until it has been set as PICK_UP by LOGISTICS. hence, waybill will be continuall created
  * PICK_UP - deliverer has picked up and to be delivered to the warehouse
  * WAREHOUSE - deliverer succesful delivery of invididual ordered products to the warehouse; ready for customer delivery
  * DELIVERY - deliverer chooses an order where all of the products is in the warehouse
