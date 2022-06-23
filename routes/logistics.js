@@ -12,8 +12,8 @@ const {
 
 // route
 router.get(
-  sellerAuthorize,
   "/waybill/seller/pick-up/order/:orderId/products/:products",
+  sellerAuthorize,
   getWaybillData
 );
 // router.get("/waybill/customer/delivery")
