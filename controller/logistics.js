@@ -11,6 +11,7 @@ const { orderStatuses } = require("../config/status");
 const Order = require("mongoose").model("Order");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Business = require("mongoose").model("Business");
 
 /*
  * PATCH Method, Seller auth
@@ -261,5 +262,54 @@ exports.getForPickUpProducts = async (req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET Method, Seller auth
+ *
+ * Queries all the necessary data to be showed in the waybill of an order
+ */
+exports.getWaybillData = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    // const orderId = "624914c0b6f1580e80ccfb6a";
+
+    // send in a string separated with a delimeter so that we will not perform additional loops
+    const productIds = req.params.products.split("+");
+
+    if (!orderId) return res.status(406).json({ error: error.incompleteData });
+
+    const business = await Business.findOne(
+      { _owner: req.user._id },
+      "pickUpAddress businessName "
+    );
+
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    // get orders, and filter null orderedProducts._product
+    const order = await Order.findById(
+      orderId,
+      `-orderDate -ETADate -paymentInformation -orderedProducts.rated`
+    )
+      .populate({
+        path: "orderedProducts._product",
+        select: "item",
+        match: { _id: { $in: productIds } },
+      })
+      .map((ord) => ({
+        ...ord._doc,
+        orderedProducts: ord.orderedProducts.filter(
+          (product) => product._product
+        ),
+      }));
+
+    if (!order) return res.status(404).json({ error: error.orderNotFound });
+
+    return res.status(200).json({ order, business });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
   }
 };
