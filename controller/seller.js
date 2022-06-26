@@ -279,7 +279,7 @@ exports.getOtherBusinessInformation = async (req, res) => {
  * Business seller settings card will make both make a request to this card.
  */
 exports.updateBusinessInformation = async (req, res) => {
-  const { businessInfo, address } = req.body.data;
+  const { businessInfo, address, contactInfo } = req.body.data;
 
   try {
     // if (!toUpdate) return res.status(406).json({ error: incompleteData });
@@ -296,14 +296,14 @@ exports.updateBusinessInformation = async (req, res) => {
     business = {
       ...business._doc,
       ...getNonNullValues(businessInfo),
+      ...getNonNullValues(contactInfo),
       pickUpAddress: {
         ...business.pickUpAddress,
         ...getNonNullValues(address),
       },
     };
-    console.log(business);
+
     const result = await Business.updateOne(business);
-    console.log(result);
 
     return res.status(201).json({ business });
   } catch (e) {

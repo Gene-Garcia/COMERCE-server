@@ -30,6 +30,11 @@ const businessSchema = Schema({
 
   businessEmail: { type: String },
 
+  contactNumber: {
+    type: Number,
+    match: [/^9\d{9}$/, "Invalid primary phone number"],
+  },
+
   businessName: {
     type: String,
     required: "Name of business is required",
