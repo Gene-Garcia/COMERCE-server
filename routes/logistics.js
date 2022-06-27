@@ -8,11 +8,12 @@ const { logisticsAuthorize, sellerAuthorize } = require("../middleware/auth");
 const {
   getForPickUpProducts,
   getWaybillData,
+  testGetWaybillData,
 } = require("../controller/logistics");
 
 // route
 router.get(
-  "/waybill/seller/pick-up/order/:orderId/products/:products",
+  "/waybill/seller/pick-up/order/:orders/products/:products",
   sellerAuthorize,
   getWaybillData
 );

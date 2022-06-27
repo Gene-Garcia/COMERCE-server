@@ -6,6 +6,7 @@
 //utils
 const { error } = require("../config/errorMessages");
 const { orderStatuses } = require("../config/status");
+const { parseGetWaybillDataParams } = require("../utils/parameterHelper");
 
 // model
 const Order = require("mongoose").model("Order");
@@ -272,42 +273,51 @@ exports.getForPickUpProducts = async (req, res) => {
  */
 exports.getWaybillData = async (req, res) => {
   try {
-    const { orderId } = req.params;
-    // const orderId = "624914c0b6f1580e80ccfb6a";
-
-    // send in a string separated with a delimeter so that we will not perform additional loops
-    const productIds = req.params.products.split("+");
-
-    if (!orderId) return res.status(406).json({ error: error.incompleteData });
-
-    const business = await Business.findOne(
-      { _owner: req.user._id },
-      "pickUpAddress businessName "
+    // parse paramater
+    const ordersToPrint = parseGetWaybillDataParams(
+      req.params.orders,
+      req.params.products
     );
 
+    // get business first
+    const business = await Business.findOne(
+      { _owner: req.user._id },
+      "pickUpAddress businessName contactNumber"
+    );
     if (!business)
       return res.status(404).json({ error: error.sellerAccountMissing });
 
-    // get orders, and filter null orderedProducts._product
-    const order = await Order.findById(
-      orderId,
-      `-orderDate -ETADate -paymentInformation -orderedProducts.rated`
-    )
-      .populate({
-        path: "orderedProducts._product",
-        select: "item",
-        match: { _id: { $in: productIds } },
+    let waybillOrders = [];
+
+    await Promise.all(
+      ordersToPrint.map(async ({ orderId, productIds }) => {
+        if (!orderId)
+          return res.status(406).json({ error: error.incompleteData });
+
+        // get orders, and filter null orderedProducts._product
+        const order = await Order.findById(
+          orderId,
+          `-orderDate -ETADate -paymentInformation -orderedProducts.rated`
+        )
+          .populate({
+            path: "orderedProducts._product",
+            select: "item",
+            match: { _id: { $in: productIds } },
+          })
+          .map((ord) => ({
+            ...ord._doc,
+            orderedProducts: ord.orderedProducts.filter(
+              (product) => product._product
+            ),
+          }));
+
+        if (!order) return res.status(404).json({ error: error.orderNotFound });
+
+        waybillOrders.push(order);
       })
-      .map((ord) => ({
-        ...ord._doc,
-        orderedProducts: ord.orderedProducts.filter(
-          (product) => product._product
-        ),
-      }));
+    );
 
-    if (!order) return res.status(404).json({ error: error.orderNotFound });
-
-    return res.status(200).json({ order, business });
+    return res.status(200).json({ waybillOrders, business });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
