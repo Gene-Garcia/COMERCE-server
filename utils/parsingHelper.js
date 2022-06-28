@@ -1,5 +1,5 @@
 /*
- * Contains helper related to parsing request paramters
+ * Contains helper related to parsing data, e.g. parameters or body
  *
  */
 
@@ -7,9 +7,9 @@
  *
  *
  */
-exports.parseGetWaybillDataParams = (ordersParam, productsParam) => {
-  const orderIds = ordersParam.split("+");
-  const productIds = productsParam.split("-");
+exports.parseGetWaybillDataIds = (ordersData, productsData) => {
+  const orderIds = ordersData.split("+");
+  const productIds = productsData.split("-");
 
   const orders = orderIds
     .map((id, i) => {
