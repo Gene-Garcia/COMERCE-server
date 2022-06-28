@@ -24,12 +24,12 @@ exports.orderStatuses = {
   PACKED: "PACKED",
 
   // order status used by deliverer
-  PICK_UP: "SELLER_PICK_UP",
+  PICK_UP: "SELLER PICK UP",
   WAREHOUSE: "WAREHOUSE",
 
-  DELIVERY: "CUSTOMER_DELIVERY",
+  DELIVERY: "CUSTOMER DELIVERY",
 
-  REVIEW: "DELIVERED_AND_FOR_REVIEW", // Delivered
+  REVIEW: "DELIVERED AND FOR REVIEW", // Delivered
   // end deliverer status used
   FULFILLED: "FULFILLED",
 };
