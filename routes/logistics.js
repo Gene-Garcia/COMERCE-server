@@ -8,7 +8,7 @@ const { logisticsAuthorize, sellerAuthorize } = require("../middleware/auth");
 const {
   getForPickUpProducts,
   getWaybillData,
-  testGetWaybillData,
+  packOrders,
 } = require("../controller/logistics");
 
 // route
@@ -17,7 +17,8 @@ router.get(
   sellerAuthorize,
   getWaybillData
 );
-// router.get("/waybill/customer/delivery")
+
+router.patch("/orders/update/pick-up", sellerAuthorize, packOrders);
 
 router.get("/for-pick-up", logisticsAuthorize, getForPickUpProducts);
 

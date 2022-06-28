@@ -6,7 +6,7 @@
 //utils
 const { error } = require("../config/errorMessages");
 const { orderStatuses } = require("../config/status");
-const { parseGetWaybillDataParams } = require("../utils/parameterHelper");
+const { parseGetWaybillDataIds } = require("../utils/parsingHelper");
 
 // model
 const Order = require("mongoose").model("Order");
@@ -274,7 +274,7 @@ exports.getForPickUpProducts = async (req, res) => {
 exports.getWaybillData = async (req, res) => {
   try {
     // parse paramater
-    const ordersToPrint = parseGetWaybillDataParams(
+    const ordersToPrint = parseGetWaybillDataIds(
       req.params.orders,
       req.params.products
     );
@@ -321,5 +321,79 @@ exports.getWaybillData = async (req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
+  }
+};
+
+/*
+ * PATCH Method, seller auth
+ *
+ * Sets orders's ordered Products as PICK_UP
+ * body also includes orderIds with productIds: orderId+orderId... & productId+productId-productId...
+ *
+ * Sets the orders.status to PICK_UP if all are PICK_UP
+ */
+exports.packOrders = async (req, res) => {
+  try {
+    const orders = req.body.orders;
+
+    let customerNames = [];
+    let updatedOrders = [];
+
+    await Promise.all(
+      orders.map(async ({ orderId, productIds }) => {
+        if (!orderId)
+          return res.status(406).json({ error: error.incompleteData });
+
+        // get orders and all orderedProducts, regardless if from different sellers
+        const order = await Order.findById(orderId).populate({
+          path: "orderedProducts._product",
+          select: "item",
+          match: { _id: { $in: productIds } },
+        });
+
+        if (!order) return res.status(404).json({ error: error.orderNotFound });
+
+        // ordered product status
+        let isAllPickUp = true;
+
+        order.orderedProducts = order.orderedProducts.map((product) => {
+          // the query to populate the order.orderedProducts only populates those in productIds
+          // we can use to check if _product is not null to know which order.orderedProduct.status to be set as PICK_UP
+          if (product._product) product.status = orderStatuses.PICK_UP;
+
+          // although, only orderedProduct in productIds will have _product the orderedProduct.status is still
+          if (product.status.toUpperCase() != orderStatuses.PICK_UP)
+            isAllPickUp = false;
+
+          return product;
+        });
+
+        if (isAllPickUp) order.status = orderStatuses.PICK_UP;
+
+        // finally, update order
+        await order.save();
+
+        updatedOrders.push(order._id);
+        customerNames.push(
+          order.shipmentDetails.firstName + " " + order.shipmentDetails.lastName
+        );
+      })
+    );
+
+    if (updatedOrders.length > 0)
+      return res.status(201).json({
+        message: `Orders for customers ${customerNames.join(
+          ","
+        )} is now for Pick Up.`,
+        updatedOrders,
+      });
+    else
+      return res.status(200).json({
+        message:
+          "Unable to updated printed waybill orders. Something went wrong, try again.",
+      });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: error.serverError });
   }
 };
