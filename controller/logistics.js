@@ -327,10 +327,13 @@ exports.getWaybillData = async (req, res) => {
 /*
  * PATCH Method, seller auth
  *
- * Sets orders's ordered Products as PICK_UP
+ * Sets orders's ordered Products as PACKED
  * body also includes orderIds with productIds: orderId+orderId... & productId+productId-productId...
  *
- * Sets the orders.status to PICK_UP if all are PICK_UP
+ * Sets the orders.status to PACKED if all are PACKED
+ *
+ * PACKED indicates an order and its item from the same seller are printed and attached
+ * with a waybill
  */
 exports.packOrders = async (req, res) => {
   try {
@@ -354,21 +357,21 @@ exports.packOrders = async (req, res) => {
         if (!order) return res.status(404).json({ error: error.orderNotFound });
 
         // ordered product status
-        let isAllPickUp = true;
+        let isAllPacked = true;
 
         order.orderedProducts = order.orderedProducts.map((product) => {
           // the query to populate the order.orderedProducts only populates those in productIds
-          // we can use to check if _product is not null to know which order.orderedProduct.status to be set as PICK_UP
-          if (product._product) product.status = orderStatuses.PICK_UP;
+          // we can use to check if _product is not null to know which order.orderedProduct.status to be set as PACKED
+          if (product._product) product.status = orderStatuses.PACKED;
 
           // although, only orderedProduct in productIds will have _product the orderedProduct.status is still
-          if (product.status.toUpperCase() != orderStatuses.PICK_UP)
-            isAllPickUp = false;
+          if (product.status.toUpperCase() != orderStatuses.PACKED)
+            isAllPacked = false;
 
           return product;
         });
 
-        if (isAllPickUp) order.status = orderStatuses.PICK_UP;
+        if (isAllPacked) order.status = orderStatuses.PACKED;
 
         // finally, update order
         await order.save();
@@ -384,7 +387,7 @@ exports.packOrders = async (req, res) => {
       return res.status(201).json({
         message: `Orders for customers ${customerNames.join(
           ","
-        )} is now for Pick Up.`,
+        )} are now updated as Packed.`,
         updatedOrders,
       });
     else

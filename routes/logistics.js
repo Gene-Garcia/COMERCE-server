@@ -13,12 +13,12 @@ const {
 
 // route
 router.get(
-  "/waybill/seller/pick-up/order/:orders/products/:products",
+  "/waybill/seller/order/:orders/products/:products",
   sellerAuthorize,
   getWaybillData
 );
 
-router.patch("/orders/update/pick-up", sellerAuthorize, packOrders);
+router.patch("/orders/pack", sellerAuthorize, packOrders);
 
 router.get("/for-pick-up", logisticsAuthorize, getForPickUpProducts);
 
