@@ -223,50 +223,6 @@ exports.shipProductOrders = async (req, res) => {
 };
 
 /*
- * GET Method, Logistics auth
- *
- * DEPRECATED, NEED UPDATED
- *
- * A logistics user method that returns all ordered products that are LOGISTICS.
- * Basically all orders that has a status of LOGISTICS is guaranteed to have atleast 1
- * ordered products' status to be LOGISTISCS
- */
-exports.getForPickUpProducts = async (req, res) => {
-  try {
-    let orders = await Order.find(
-      {
-        status: orderStatuses.LOGISTICS,
-        "orderedProducts.status": orderStatuses.LOGISTICS,
-      },
-      "ETADate status orderedProducts.status orderedProducts._product"
-    )
-      .populate({
-        path: "orderedProducts._product",
-        select: "item _business",
-
-        populate: {
-          path: "_business",
-          select: "businessName",
-        },
-      })
-      .exec();
-
-    // we will filter every order orderedproducts to retain only products with status of PACKED
-    orders = orders.map((order) => ({
-      ...order._doc,
-      orderedProducts: order.orderedProducts.filter(
-        (product) => product.status === orderStatuses.LOGISTICS
-      ),
-    }));
-
-    return res.status(200).json({ orders });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: error.serverError });
-  }
-};
-
-/*
  * GET Method, Seller auth
  *
  * Queries all the necessary data to be showed in the waybill of an order
@@ -397,6 +353,46 @@ exports.packOrders = async (req, res) => {
       });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET Method, Logistics auth
+ *
+ * For pick up products are orderedProducts whose status are PACKED.
+ * Regardless if order.status is PACKED or NOT, orderedProducts from different
+ * seller can be picked up by logistics. So they will be stored in the warehouse
+ * until all other orderedProducts from the same order will be present in the WAREHOUSE
+ *
+ * In other words, an order with orderedProducts from different seller will be PICK_UP by the
+ * logistics at different times. They will all just meet and be prepared in the WAREHOUSE.
+ */
+exports.getForPickUpProducts = async (req, res) => {
+  try {
+    let orders = await Order.find(
+      {
+        "orderedProducts.status": orderStatuses.PACKED,
+      },
+      "status orderedProducts"
+    );
+
+    // remove all orderedProducts whose status is NOT PACKED
+    // even with the mongoose filter, it will return all data of orderedProducts array
+    // even if one data in array has status of PACKEd
+    orders = orders.filter((order) => {
+      order.orderedProducts = order.orderedProducts.filter(
+        (product) => product.status.toUpperCase() === orderStatuses.PACKED
+      );
+
+      // precautionary measures only, if for some circumstances an order has been queried even when all orderedProducts are not PACKED
+      if (order.orderedProducts.length > 0) return true;
+      else return false;
+    });
+
+    return res.status(200).json({ orders });
+  } catch (e) {
+    console.error(e);
     return res.status(500).json({ error: error.serverError });
   }
 };
