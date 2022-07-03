@@ -14,7 +14,7 @@ const { error } = require("../config/errorMessages");
 const { validateBusinessData } = require("../utils/businessHelper");
 const {
   validateVehicleData,
-  validateDelivererData,
+  validateDelivererAddress,
 } = require("../utils/delivererHelper");
 
 /*
@@ -126,7 +126,7 @@ exports.signup = async (req, res, next) => {
   const { businessData } = req.body;
 
   // LOGISTICS account sign up
-  const { vehicleData, delivererData } = req.body;
+  const { vehicleData, address, contactInformation } = req.body;
 
   if (!firstName || !lastName || !email || !username || !password || !userType)
     res.status(406).json({ error: error.incompleteData });
@@ -178,26 +178,18 @@ exports.signup = async (req, res, next) => {
           if (!validateVehicleData(vehicleData))
             return res.status(406).json({ error: error.incompleteData });
 
-          if (!validateDelivererData(delivererData))
+          if (!validateDelivererAddress(address))
+            return res.status(406).json({ error: error.incompleteData });
+
+          if (!contactInformation.primaryNumber)
             return res.status(406).json({ error: error.incompleteData });
 
           // create Deliverer
           const deliverer = Deliverer();
           // deliverer._user = newUser._id;
 
-          deliverer.firstName = delivererData.firstName;
-          deliverer.lastName = delivererData.lastName;
-
-          deliverer.contactInformation = {
-            ...delivererData.contactInformation,
-            primaryNumber: parseInt(
-              delivererData.contactInformation.primaryNumber
-            ),
-            secondaryNumber: delivererData.contactInformation.secondaryNumber
-              ? parseInt(delivererData.contactInformation.secondaryNumber)
-              : null,
-          };
-
+          deliverer.contactInformation = { ...contactInformation };
+          deliverer.address = { ...address };
           deliverer.vehicleInformation = { ...vehicleData };
 
           // save Deliverer
@@ -208,7 +200,6 @@ exports.signup = async (req, res, next) => {
           // failed
           if (!success) {
             // do not create user record
-
             return res.status(505).json({ error: error.delivererError });
           }
 
@@ -237,6 +228,7 @@ exports.signup = async (req, res, next) => {
         }
       }
     } catch (e) {
+      console.error(e);
       res.status(500).json({ error: error.serverError });
     }
   }

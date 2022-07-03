@@ -10,45 +10,39 @@ const delivererSchema = Schema({
     // required: "No user record was referenced",
   },
 
-  // IN USER MODEL
-  // firstName: {
-  //   type: String,
-  //   required: "First name is required",
-  // },
+  address: {
+    streetAddress: {
+      type: String,
+    },
 
-  // lastName: {
-  //   type: String,
-  //   required: "Last name is required",
-  // },
+    barangay: {
+      type: String,
+      required: "Barangay is required",
+    },
 
-  // contactInformation: {
-  //   // IN USER MODEL
-  //   // streetAddress: {
-  //   //   type: String,
-  //   // },
-  //   // barangay: {
-  //   //   type: String,
-  //   //   required: "Barangay is required",
-  //   // },
-  //   // cityMunicipality: {
-  //   //   type: String,
-  //   //   required: "City or municipality is required",
-  //   // },
-  //   // province: {
-  //   //   type: String,
-  //   //   required: "Province is required",
-  //   // },
-  //   // IN USER MODEL
-  //   // primaryNumber: {
-  //   //   type: String,
-  //   //   required: "Primary number is required",
-  //   //   match: [/^9\d{9}$/, "Invalid primary phone number"],
-  //   // },
-  //   // secondaryNumber: {
-  //   //   type: String,
-  //   //   match: [/^9\d{9}$/, "Invalid primary phone number"],
-  //   // },
-  // },
+    cityMunicipality: {
+      type: String,
+      required: "City or municipality is required",
+    },
+
+    province: {
+      type: String,
+      required: "Province is required",
+    },
+  },
+
+  contactInformation: {
+    primaryNumber: {
+      type: String,
+      required: "Primary number is required",
+      match: [/^9\d{9}$/, "Invalid primary phone number"],
+    },
+    
+    secondaryNumber: {
+      type: String,
+      match: [/^9\d{9}$/, "Invalid primary phone number"],
+    },
+  },
 
   vehicleInformation: {
     maker: {

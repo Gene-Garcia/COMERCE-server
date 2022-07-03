@@ -28,34 +28,13 @@ exports.validateVehicleData = (vehicleData) => {
 };
 
 /*
- * Validates and checks whether the personal information of the deliverer
+ * Validates and checks whether the personal address of the deliverer
  * object contains all neccessary fields.
- *
- * The checks also validates the nested object "contactInformation"
- */
-exports.validateDelivererData = (delivererData) => {
-  const {
-    contactInformation: {
-      streetAddress,
-      barangay,
-      cityMunicipality,
-      province,
-      primaryNumber,
-      //secondaryNumber, //not required
-    },
-    firstName,
-    lastName,
-  } = delivererData;
+ * */
+exports.validateDelivererAddress = (address) => {
+  const { streetAddress, barangay, cityMunicipality, province } = address;
 
-  if (
-    !firstName ||
-    !lastName ||
-    !streetAddress ||
-    !barangay ||
-    !cityMunicipality ||
-    !province ||
-    !primaryNumber
-  )
+  if (!streetAddress || !barangay || !cityMunicipality || !province)
     return false;
 
   return true;
