@@ -406,8 +406,6 @@ exports.getForPickUpProducts = async (req, res) => {
             if (businessIdKey in forPickUpProducts) {
               // existing business object
 
-              console.log(forPickUpProducts);
-
               // find object
               // increment quantity
               // append in products
@@ -440,6 +438,9 @@ exports.getForPickUpProducts = async (req, res) => {
                     itemName: product._product.item,
                   },
                 ],
+
+                // object property needed in the fronted
+                checked: false,
               };
 
               // save new business object
