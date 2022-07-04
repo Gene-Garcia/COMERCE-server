@@ -374,23 +374,85 @@ exports.getForPickUpProducts = async (req, res) => {
       {
         "orderedProducts.status": orderStatuses.PACKED,
       },
-      "status orderedProducts"
-    );
+      "status orderedProducts.quantity orderedProducts._product orderedProducts.status"
+    ).populate({
+      path: "orderedProducts._product",
+      select: "item _business",
 
-    // remove all orderedProducts whose status is NOT PACKED
-    // even with the mongoose filter, it will return all data of orderedProducts array
-    // even if one data in array has status of PACKEd
-    orders = orders.filter((order) => {
-      order.orderedProducts = order.orderedProducts.filter(
-        (product) => product.status.toUpperCase() === orderStatuses.PACKED
-      );
-
-      // precautionary measures only, if for some circumstances an order has been queried even when all orderedProducts are not PACKED
-      if (order.orderedProducts.length > 0) return true;
-      else return false;
+      populate: {
+        path: "_business",
+        select: "businessEmail contactNumber businessName pickUpAddress",
+      },
     });
 
-    return res.status(200).json({ orders });
+    // I need it to be an object of objects so that I can check if businessId is existing
+    let forPickUpProducts = {};
+
+    /*
+     * We will build the array of forPickUpProducts which is grouped by
+     * businessId.
+     *
+     * So, if order1 and order2 have PACKED orderedProducts then they will be
+     * stored in one object
+     *
+     * the 'orders' will contain NON-PACKED orderedProducts.status-needs filtering
+     */
+    orders.forEach((order) => {
+      order.orderedProducts.forEach((product) => {
+        if (product.status.toUpperCase() === orderStatuses.PACKED) {
+          if (product._product) {
+            const businessIdKey = product._product._business._id;
+
+            if (businessIdKey in forPickUpProducts) {
+              // existing business object
+
+              console.log(forPickUpProducts);
+
+              // find object
+              // increment quantity
+              // append in products
+              let productTemplate = {
+                orderId: order._id,
+                productId: product._product._id,
+                itemName: product._product.item,
+              };
+
+              forPickUpProducts[businessIdKey].productQuantity +=
+                product.quantity;
+
+              forPickUpProducts[businessIdKey].products.push(productTemplate);
+            } else {
+              // new business object
+
+              // populate template
+              let template = {
+                businessName: product._product._business.businessName,
+                email: product._product._business.businessEmail,
+                contactNumber: product._product._business.contactNumber,
+                pickUpAddress: product._product._business.pickUpAddress,
+
+                productQuantity: product.quantity,
+
+                products: [
+                  {
+                    orderId: order._id,
+                    productId: product._product._id,
+                    itemName: product._product.item,
+                  },
+                ],
+              };
+
+              // save new business object
+              forPickUpProducts[businessIdKey] = {
+                ...template,
+              };
+            }
+          }
+        }
+      });
+    });
+
+    return res.status(200).json({ forPickUpProducts });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });
