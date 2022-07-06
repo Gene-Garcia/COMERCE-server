@@ -408,17 +408,26 @@ exports.getForPickUpProducts = async (req, res) => {
 
               // find object
               // increment quantity
-              // append in products
-              let productTemplate = {
-                orderId: order._id,
-                productId: product._product._id,
-                itemName: product._product.item,
-              };
+              // append in orders
+
+              if (order._id in forPickUpProducts[businessIdKey].orders) {
+                // order is already record
+                forPickUpProducts[businessIdKey].orders[order._id].push({
+                  productId: product._product._id,
+                  itemName: product._product.item,
+                });
+              } else {
+                // new order
+                forPickUpProducts[businessIdKey].orders[order._id] = [
+                  {
+                    productId: product._product._id,
+                    itemName: product._product.item,
+                  },
+                ];
+              }
 
               forPickUpProducts[businessIdKey].productQuantity +=
                 product.quantity;
-
-              forPickUpProducts[businessIdKey].products.push(productTemplate);
             } else {
               // new business object
 
@@ -431,13 +440,14 @@ exports.getForPickUpProducts = async (req, res) => {
 
                 productQuantity: product.quantity,
 
-                products: [
-                  {
-                    orderId: order._id,
-                    productId: product._product._id,
-                    itemName: product._product.item,
-                  },
-                ],
+                orders: {
+                  [order._id]: [
+                    {
+                      productId: product._product._id,
+                      itemName: product._product.item,
+                    },
+                  ],
+                },
 
                 // object property needed in the fronted
                 checked: false,
