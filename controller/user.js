@@ -4,6 +4,7 @@ require("dotenv").config();
 // Models
 const User = require("mongoose").model("User");
 const Business = require("mongoose").model("Business");
+const Deliverer = require("mongoose").model("Deliverer");
 
 // Utils
 const { sendMailer } = require("../utils/mailer");
@@ -11,6 +12,10 @@ const { sendMailer } = require("../utils/mailer");
 // Custom Error Message
 const { error } = require("../config/errorMessages");
 const { validateBusinessData } = require("../utils/businessHelper");
+const {
+  validateVehicleData,
+  validateDelivererAddress,
+} = require("../utils/delivererHelper");
 
 /*
  * POST Method
@@ -59,8 +64,10 @@ exports.signin = async (req, res, next) => {
           maxAge: process.env.JWT_EXPIRATION,
         });
 
-        // query the business information and return the user and business info
+        // Sign up for SELLER
         if (expectedUserType === "SELLER") {
+          // query the business information and return the user and business info
+
           const business = await Business.findOne(
             { _owner: user._id },
             "businessEmail businessName businessLogoAddress"
@@ -73,6 +80,18 @@ exports.signin = async (req, res, next) => {
           });
         }
 
+        // Sign up for LOGISTICS
+        if (expectedUserType === "LOGISTICS") {
+          // validate if this user has a deliverer record
+          const isRegistered = await Deliverer.exists({ _user: user._id });
+
+          if (!isRegistered)
+            return res
+              .status(404)
+              .json({ error: error.logisticsAccountNotFound });
+        }
+
+        // Custome user sign up
         // user is not SELLER
         return res.status(200).json({
           user,
@@ -100,9 +119,16 @@ exports.signin = async (req, res, next) => {
  *
  */
 exports.signup = async (req, res, next) => {
-  const { email, username, password, userType, businessData } = req.body;
+  console.log(req.body);
+  const { firstName, lastName, email, username, password, userType } = req.body;
 
-  if (!email || !username || !password || !userType)
+  // SELLER account sign up
+  const { businessData } = req.body;
+
+  // LOGISTICS account sign up
+  const { vehicleData, address, contactInformation } = req.body;
+
+  if (!firstName || !lastName || !email || !username || !password || !userType)
     res.status(406).json({ error: error.incompleteData });
   else {
     try {
@@ -111,18 +137,26 @@ exports.signup = async (req, res, next) => {
 
       if (check) res.status(500).json({ error: error.emailTaken });
       else {
-        const newUser = await User.create({
+        const newUser = User({
+          fullName: { firstName, lastName },
           email,
           username,
           password,
           userType,
         });
 
-        // a SELLER signup will lead to creation of the business account
+        // USER SAVE SHOULD OCCUR CREATING THE BUSINESS/LOGISTICS ACCOUNT
+        // AND ENSURE TO DELETE THE CREATED USER RECORD WHENEVER SAVE OF
+        // BUSINESS/LOGISTICS RECORD FAILS
+
         if (userType === "SELLER") {
+          // a SELLER signup will lead to creation of the business account
           if (validateBusinessData(businessData)) {
             // we need to wrap the creation of the business account
             // in order to catch error raised by mongoose and delete the created account
+
+            await newUser.save();
+
             const businessRec = await Business.create({
               _owner: newUser._id,
               dateCreated: new Date(),
@@ -130,22 +164,71 @@ exports.signup = async (req, res, next) => {
             });
 
             if (!businessRec) {
-              //delete newUser
-              await User.findOneAndDelete({ _id: newUser._id }).exec();
-
-              res.status(500).json({
+              return res.status(500).json({
                 error: error.sellerError,
               });
-            } else res.status(200).json({});
+            } else {
+              await newUser.save();
+              res.status(200).json({});
+            }
             // delete also the account record here
           } else res.status(406).json({ error: error.incompleteData });
+        } else if (userType === "LOGISTICS") {
+          // a LOGISTICS signup will lead to the creation of a deliverer record
+          if (!validateVehicleData(vehicleData))
+            return res.status(406).json({ error: error.incompleteData });
+
+          if (!validateDelivererAddress(address))
+            return res.status(406).json({ error: error.incompleteData });
+
+          if (!contactInformation.primaryNumber)
+            return res.status(406).json({ error: error.incompleteData });
+
+          // create Deliverer
+          const deliverer = Deliverer();
+          // deliverer._user = newUser._id;
+
+          deliverer.contactInformation = { ...contactInformation };
+          deliverer.address = { ...address };
+          deliverer.vehicleInformation = { ...vehicleData };
+
+          // save Deliverer
+          await deliverer.save();
+
+          let success = await Deliverer.exists({ _id: deliverer._id });
+
+          // failed
+          if (!success) {
+            // do not create user record
+            return res.status(505).json({ error: error.delivererError });
+          }
+
+          // success
+          // save new user and reference to deliverer
+          await newUser.save();
+          success = await User.exists({ _id: newUser._id });
+
+          // failed
+          if (!success) {
+            // delete the deliverer
+            await Deliverer.deleteOne({ _id: deliverer._id }).exec();
+
+            return res.status(505).json({ error: error.delivererError });
+          }
+
+          // reference to deliverer and save
+          deliverer._user = newUser._id;
+          await deliverer.save();
+
+          return res.status(201).json({});
         } else {
           // The logic, after registration, go back to login, so no need, yet, to send token
+          await newUser.save();
           res.status(200).json({});
         }
       }
     } catch (e) {
-      console.log(e.message);
+      console.error(e);
       res.status(500).json({ error: error.serverError });
     }
   }

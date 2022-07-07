@@ -45,6 +45,48 @@ const userSchema = mongoose.Schema({
       ref: "Cart",
     },
   ],
+
+  fullName: {
+    firstName: {
+      type: String,
+    },
+
+    lastName: {
+      type: String,
+    },
+  },
+
+  /*
+   * will be set up later
+   * 
+   * So for a seller this is not considered as their
+   * business and pick-up address
+   */
+  shippingAddress: {
+    street: {
+      type: String,
+    },
+    barangay: {
+      type: String,
+    },
+    townMunicipality: {
+      type: String,
+    },
+    province: {
+      type: String,
+    },
+  },
+
+  contactDetails: {
+    phoneNumber: {
+      type: Number,
+      match: [/^9\d{9}$/, "Invalid primary phone number"],
+    },
+    secondaryNumber: {
+      type: Number,
+      match: [/^9\d{9}$/, "Invalid primary phone number"],
+    },
+  },
 });
 
 /*

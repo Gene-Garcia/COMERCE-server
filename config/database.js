@@ -37,3 +37,5 @@ require("../models/productModel");
 require("../models/cartModel");
 require("../models/orderModel");
 require("../models/businessModel");
+require("../models/delivererModel");
+require("../models/logisticsModel");

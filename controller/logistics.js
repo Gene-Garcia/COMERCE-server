@@ -6,11 +6,13 @@
 //utils
 const { error } = require("../config/errorMessages");
 const { orderStatuses } = require("../config/status");
+const { parseGetWaybillDataIds } = require("../utils/parsingHelper");
 
 // model
 const Order = require("mongoose").model("Order");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
+const Business = require("mongoose").model("Business");
 
 /*
  * PATCH Method, Seller auth
@@ -214,6 +216,254 @@ exports.shipProductOrders = async (req, res) => {
       message += `An was encountered in updating the order record`;
 
     return res.status(200).json({ message, inventoryRes, orderRes });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET Method, Seller auth
+ *
+ * Queries all the necessary data to be showed in the waybill of an order
+ */
+exports.getWaybillData = async (req, res) => {
+  try {
+    // parse paramater
+    const ordersToPrint = parseGetWaybillDataIds(
+      req.params.orders,
+      req.params.products
+    );
+
+    // get business first
+    const business = await Business.findOne(
+      { _owner: req.user._id },
+      "pickUpAddress businessName contactNumber"
+    );
+    if (!business)
+      return res.status(404).json({ error: error.sellerAccountMissing });
+
+    let waybillOrders = [];
+
+    await Promise.all(
+      ordersToPrint.map(async ({ orderId, productIds }) => {
+        if (!orderId)
+          return res.status(406).json({ error: error.incompleteData });
+
+        // get orders, and filter null orderedProducts._product
+        const order = await Order.findById(
+          orderId,
+          `-orderDate -ETADate -paymentInformation -orderedProducts.rated`
+        )
+          .populate({
+            path: "orderedProducts._product",
+            select: "item",
+            match: { _id: { $in: productIds } },
+          })
+          .map((ord) => ({
+            ...ord._doc,
+            orderedProducts: ord.orderedProducts.filter(
+              (product) => product._product
+            ),
+          }));
+
+        if (!order) return res.status(404).json({ error: error.orderNotFound });
+
+        waybillOrders.push(order);
+      })
+    );
+
+    return res.status(200).json({ waybillOrders, business });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+};
+
+/*
+ * PATCH Method, seller auth
+ *
+ * Sets orders's ordered Products as PACKED
+ * body also includes orderIds with productIds: orderId+orderId... & productId+productId-productId...
+ *
+ * Sets the orders.status to PACKED if all are PACKED
+ *
+ * PACKED indicates an order and its item from the same seller are printed and attached
+ * with a waybill
+ */
+exports.packOrders = async (req, res) => {
+  try {
+    const orders = req.body.orders;
+
+    let customerNames = [];
+    let updatedOrders = [];
+
+    await Promise.all(
+      orders.map(async ({ orderId, productIds }) => {
+        if (!orderId)
+          return res.status(406).json({ error: error.incompleteData });
+
+        // get orders and all orderedProducts, regardless if from different sellers
+        const order = await Order.findById(orderId).populate({
+          path: "orderedProducts._product",
+          select: "item",
+          match: { _id: { $in: productIds } },
+        });
+
+        if (!order) return res.status(404).json({ error: error.orderNotFound });
+
+        // ordered product status
+        let isAllPacked = true;
+
+        order.orderedProducts = order.orderedProducts.map((product) => {
+          // the query to populate the order.orderedProducts only populates those in productIds
+          // we can use to check if _product is not null to know which order.orderedProduct.status to be set as PACKED
+          if (product._product) product.status = orderStatuses.PACKED;
+
+          // although, only orderedProduct in productIds will have _product the orderedProduct.status is still
+          if (product.status.toUpperCase() != orderStatuses.PACKED)
+            isAllPacked = false;
+
+          return product;
+        });
+
+        if (isAllPacked) order.status = orderStatuses.PACKED;
+
+        // finally, update order
+        await order.save();
+
+        updatedOrders.push(order._id);
+        customerNames.push(
+          order.shipmentDetails.firstName + " " + order.shipmentDetails.lastName
+        );
+      })
+    );
+
+    if (updatedOrders.length > 0)
+      return res.status(201).json({
+        message: `Orders for customers ${customerNames.join(
+          ","
+        )} are now updated as Packed.`,
+        updatedOrders,
+      });
+    else
+      return res.status(200).json({
+        message:
+          "Unable to updated printed waybill orders. Something went wrong, try again.",
+      });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * GET Method, Logistics auth
+ *
+ * For pick up products are orderedProducts whose status are PACKED.
+ * Regardless if order.status is PACKED or NOT, orderedProducts from different
+ * seller can be picked up by logistics. So they will be stored in the warehouse
+ * until all other orderedProducts from the same order will be present in the WAREHOUSE
+ *
+ * In other words, an order with orderedProducts from different seller will be PICK_UP by the
+ * logistics at different times. They will all just meet and be prepared in the WAREHOUSE.
+ */
+exports.getForPickUpProducts = async (req, res) => {
+  try {
+    let orders = await Order.find(
+      {
+        "orderedProducts.status": orderStatuses.PACKED,
+      },
+      "status orderedProducts.quantity orderedProducts._product orderedProducts.status"
+    ).populate({
+      path: "orderedProducts._product",
+      select: "item _business",
+
+      populate: {
+        path: "_business",
+        select: "businessEmail contactNumber businessName pickUpAddress",
+      },
+    });
+
+    // I need it to be an object of objects so that I can check if businessId is existing
+    let forPickUpProducts = {};
+
+    /*
+     * We will build the array of forPickUpProducts which is grouped by
+     * businessId.
+     *
+     * So, if order1 and order2 have PACKED orderedProducts then they will be
+     * stored in one object
+     *
+     * the 'orders' will contain NON-PACKED orderedProducts.status-needs filtering
+     */
+    orders.forEach((order) => {
+      order.orderedProducts.forEach((product) => {
+        if (product.status.toUpperCase() === orderStatuses.PACKED) {
+          if (product._product) {
+            const businessIdKey = product._product._business._id;
+
+            if (businessIdKey in forPickUpProducts) {
+              // existing business object
+
+              // find object
+              // increment quantity
+              // append in orders
+
+              if (order._id in forPickUpProducts[businessIdKey].orders) {
+                // order is already record
+                forPickUpProducts[businessIdKey].orders[order._id].push({
+                  productId: product._product._id,
+                  itemName: product._product.item,
+                });
+              } else {
+                // new order
+                forPickUpProducts[businessIdKey].orders[order._id] = [
+                  {
+                    productId: product._product._id,
+                    itemName: product._product.item,
+                  },
+                ];
+              }
+
+              forPickUpProducts[businessIdKey].productQuantity +=
+                product.quantity;
+            } else {
+              // new business object
+
+              // populate template
+              let template = {
+                businessName: product._product._business.businessName,
+                email: product._product._business.businessEmail,
+                contactNumber: product._product._business.contactNumber,
+                pickUpAddress: product._product._business.pickUpAddress,
+
+                productQuantity: product.quantity,
+
+                orders: {
+                  [order._id]: [
+                    {
+                      productId: product._product._id,
+                      itemName: product._product.item,
+                    },
+                  ],
+                },
+
+                // object property needed in the fronted
+                checked: false,
+              };
+
+              // save new business object
+              forPickUpProducts[businessIdKey] = {
+                ...template,
+              };
+            }
+          }
+        }
+      });
+    });
+
+    return res.status(200).json({ forPickUpProducts });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });
