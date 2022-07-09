@@ -18,21 +18,46 @@ const logisticsSchema = Schema({
   _deliverer: {
     type: Schema.Types.ObjectId,
     ref: "Deliverer",
-  },
-
-  _product: {
-    type: Schema.Types.ObjectId,
-    ref: "Product",
+    required: true,
   },
 
   _order: {
     type: Schema.Types.ObjectId,
     ref: "Order",
+    required: true,
   },
 
-  deliveryType: {
+  _business: {
+    type: Schema.Types.ObjectId,
+    ref: "Business",
+  },
+  // or, if business then seller pick up, else customer then delivery
+  _customer: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+
+  orders: [
+    {
+      _order: {
+        type: Schema.Types.ObjectId,
+        ref: "Order",
+      },
+
+      products: [
+        {
+          // _product
+          type: Schema.Types.ObjectId,
+          ref: "Product",
+        },
+      ],
+    },
+  ],
+
+  // seller pick up or customer delivery
+  logisticsType: {
     type: String,
-    required: "Delivery type is required",
+    required: "Logistics type is required",
   },
 
   // date when either product is picked up or when ordered products is out for delivery
@@ -41,31 +66,27 @@ const logisticsSchema = Schema({
     required: "Date started is required",
   },
 
-  // date when either product is delivered to warehouse or when ordered products received by the customer
-  dateEnded: {
-    type: Date,
-    // not required because date ended will only be added after a succesfully pick up delivery or customer delivery
-  },
-
-  success: {
+  successAttempt: {
     proof: {
-      type: String, // for now a key that is declared and recognizable only by the customer or the warehouse
-    },
-  },
-
-  failed: {
-    attempts: {
-      type: Number,
-      min: 2,
-    },
-
-    reason: {
+      // for now a key that is declared and recognizable only by the customer or the warehouse
       type: String,
     },
   },
 
-  // ADD FIELDS FOR PROOF OF DELIVERY and ON FAILED DELIVERIES
+  failedAttempts: [
+    {
+      // reason
+      reason: {
+        type: String,
+      },
+
+      // date
+      attemptDate: {
+        type: Date,
+      },
+    },
+  ],
 });
 
-// save to mongoosezaxaa
+// save to mongoose
 mongoose.model("Logistics", logisticsSchema);
