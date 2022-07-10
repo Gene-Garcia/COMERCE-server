@@ -21,12 +21,6 @@ const logisticsSchema = Schema({
     required: true,
   },
 
-  _order: {
-    type: Schema.Types.ObjectId,
-    ref: "Order",
-    required: true,
-  },
-
   _business: {
     type: Schema.Types.ObjectId,
     ref: "Business",

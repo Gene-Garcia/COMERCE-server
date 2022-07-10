@@ -37,7 +37,7 @@ const delivererSchema = Schema({
       required: "Primary number is required",
       match: [/^9\d{9}$/, "Invalid primary phone number"],
     },
-    
+
     secondaryNumber: {
       type: String,
       match: [/^9\d{9}$/, "Invalid primary phone number"],
