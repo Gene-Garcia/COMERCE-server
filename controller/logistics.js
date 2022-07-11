@@ -4,6 +4,8 @@
  */
 
 //utils
+const mongoose = require("mongoose");
+const { deliveryTypes } = require("../config/deliveryType");
 const { error } = require("../config/errorMessages");
 const { orderStatuses } = require("../config/status");
 const { parseGetWaybillDataIds } = require("../utils/parsingHelper");
@@ -13,6 +15,8 @@ const Order = require("mongoose").model("Order");
 const Product = require("mongoose").model("Product");
 const Inventory = require("mongoose").model("Inventory");
 const Business = require("mongoose").model("Business");
+const Logistics = require("mongoose").model("Logistics");
+const Deliverer = require("mongoose").model("Deliverer");
 
 /*
  * PATCH Method, Seller auth
@@ -464,6 +468,154 @@ exports.getForPickUpProducts = async (req, res) => {
     });
 
     return res.status(200).json({ forPickUpProducts });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: error.serverError });
+  }
+};
+
+/*
+ * POST Method, logistics auth
+ *
+ * Creates a logistics document/model record for the PICK_UP orders
+ * Iterates and finds the order and matches the products to update the
+ * order and orderedProduct status to PICK_UP
+ */
+exports.pickUpProducts = async (req, res) => {
+  /*
+    data structure of request body 
+    products = {
+            BUSINESSID: {
+              businessName: 'Apple',
+              email: 'apple@biz.com',
+              contactNumber: 9053660668,
+              pickUpAddress: {
+                street: 'Lot 1 Block 14',
+                barangay: 'San Francisco',
+                cityMunicipality: 'Binan',
+                province: 'Laguna'
+              },
+              productQuantity: 15,
+              orders: {
+                '624914c0b6f1580e80ccfb6a': [Array],
+                '6249151bb6f1580e80ccfbde': [Array]
+              },
+              checked: false
+            }  
+          }
+
+  */
+
+  try {
+    const { products } = req.body;
+
+    if (!products)
+      return res.status(406).json({ message: error.incompleteData });
+
+    // find deliverer
+    const deliverer = await Deliverer.findOne(
+      { _user: req.user._id },
+      "_id"
+    ).exec();
+    if (!deliverer)
+      return res.status(406).json({ message: error.logisticsAccountNotFound });
+
+    let messages = [];
+
+    const logiArr = [];
+
+    await Promise.all(
+      Object.entries(products).map(async ([businessId, product]) => {
+        const tempMessages = [];
+
+        const session = await mongoose.connection.startSession();
+
+        try {
+          session.startTransaction();
+
+          // create logistics
+          const logistics = Logistics({
+            _deliverer: deliverer._id,
+            _business: businessId,
+            orders: [],
+            logisticsType: deliveryTypes.SELLER_PICK_UP,
+            dateStarted: Date.now(),
+          });
+
+          // build array of orders and array of orders.products
+          Object.entries(product.orders).forEach(([orderId, productsArray]) => {
+            let tempOrder = {
+              _order: orderId,
+              products: productsArray.map((prodArr) => prodArr.productId),
+            };
+
+            logistics.orders.push(tempOrder);
+          });
+
+          await logistics.save({ session });
+          logiArr.push(logistics);
+
+          // create message
+          tempMessages.push(`Logistics record for ${businessId} created.`);
+
+          // iterate and find orders and update status as pick up
+          await Promise.all(
+            logistics.orders.map(async (logiOrder) => {
+              let tempMessage = "Products '";
+
+              let order = await Order.findById(logiOrder._order).session(
+                session
+              );
+
+              let isAllPickUp = true;
+              order.orderedProducts.map(async (orderedProduct, i) => {
+                if (logiOrder.products.includes(orderedProduct._product)) {
+                  order.orderedProducts[i].status = orderStatuses.PICK_UP;
+
+                  tempMessage += orderedProduct._product;
+                } else {
+                  // if atleast one of orderedProducts._product is not in the productsArray
+                  // then not yet PACKED because were not rendered in the client
+                  isAllPickUp = false;
+                }
+              });
+
+              tempMessage +=
+                "' of order " +
+                logiOrder._order +
+                " set to " +
+                orderStatuses.PICK_UP;
+              tempMessages.push(tempMessage);
+
+              if (isAllPickUp) {
+                order.status = orderStatuses.PICK_UP;
+
+                tempMessages.push(
+                  "Order " +
+                    logiOrder._order +
+                    " set to " +
+                    orderStatuses.PICK_UP
+                );
+              }
+              // update
+              await order.save({ session });
+            })
+          );
+
+          await session.commitTransaction();
+
+          // reaching here means this product-order record has been processed for logistics
+          messages = [...messages, ...tempMessages];
+        } catch (err) {
+          await session.abortTransaction();
+          console.error(err);
+        } finally {
+          session.endSession();
+        }
+      })
+    );
+
+    return res.status(200).json({ messages });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });

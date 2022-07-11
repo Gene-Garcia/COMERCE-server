@@ -3,7 +3,7 @@
  * can do for a product, order, seller, and customer
  */
 
-export default {
+exports.deliveryTypes = {
   SELLER_PICK_UP: "SELLER_PICK_UP",
   CUSTOMER_DELIVERY: "CUSTOMER_DELIVERY",
 };
