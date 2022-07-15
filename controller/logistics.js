@@ -621,3 +621,54 @@ exports.pickUpProducts = async (req, res) => {
     return res.status(500).json({ error: error.serverError });
   }
 };
+
+/*
+ * GET, logistics auth
+ *
+ * Gets all of the logistics record that are not COMPLETED-checked if success field is empty or not.
+ * Depending on the url parameter-logisticsType, either SELLER_PICK_UP or CUSTOMER_DELIVERY, will affect
+ * the logistics data retrieved.
+ */
+exports.getLogisticsWithMe = async (req, res) => {
+  try {
+    const { logisticsType } = req.params;
+
+    if (!logisticsType)
+      return res.status(406).json({ message: error.incompleteData });
+
+    // find deliverer
+    const deliverer = await Deliverer.find(
+      { _user: req.user._id },
+      "_id"
+    ).exec();
+    if (!deliverer)
+      return res.status(404).json({ message: error.logisticsAccountNotFound });
+
+    let logistics = await Logistics.find(
+      {
+        logisticsType: logisticsType.toUpperCase(),
+        deliverer: deliverer._id,
+      },
+      "_business orders dateStarted failedAttempts"
+    ).populate([
+      {
+        path: "orders._order",
+        select: "orderDate ETADate",
+      },
+      { path: "_business", select: "businessName pickUpAddress contactNumber" },
+    ]);
+
+    // add check property
+    logistics = logistics.map((logistic) => ({
+      ...logistic._doc,
+      checked: false,
+    }));
+
+    console.log(logistics);
+
+    return res.status(200).json({ logistics });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: e.error });
+  }
+};

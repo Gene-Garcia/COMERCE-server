@@ -10,6 +10,7 @@ const {
   getWaybillData,
   packOrders,
   pickUpProducts,
+  getLogisticsWithMe,
 } = require("../controller/logistics");
 
 // route
@@ -24,5 +25,7 @@ router.patch("/orders/pack", sellerAuthorize, packOrders);
 router.get("/for-pick-up", logisticsAuthorize, getForPickUpProducts);
 
 router.post("/orders/pick-up", logisticsAuthorize, pickUpProducts);
+
+router.get("/with-me/:logisticsType", logisticsAuthorize, getLogisticsWithMe);
 
 module.exports = router;
