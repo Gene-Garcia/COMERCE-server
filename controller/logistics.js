@@ -7,7 +7,11 @@
 const mongoose = require("mongoose");
 const { deliveryTypes } = require("../config/deliveryType");
 const { error } = require("../config/errorMessages");
-const { orderStatuses } = require("../config/status");
+const {
+  orderStatuses,
+  ortersStatusesHierarchy,
+  orterStatusesHierarchy,
+} = require("../config/status");
 const { parseGetWaybillDataIds } = require("../utils/parsingHelper");
 
 // model
@@ -24,202 +28,168 @@ const Deliverer = require("mongoose").model("Deliverer");
  * Dynamic controller-route where it can accept a list of orders and the products to ship.
  * The request may contain only 1 orders-products to ship or various orders-products to ship
  * Nonetheless, it will iterate an orders list. [{orderId: "", productIds: ["", "", ""]}, {...}, ...]
+ * 
+ * Updates each passed order and productIds and changes status to LOGISTICS, that is,
+ * if product inventory is sufficient.
+ * 
+ * Also performs inventory manipulations to update products' inventories if quantity matches
+ * 
+ * Then, order.status will be updated once its ordered products has a status of 'LOGISTICS or higher'
  */
 exports.shipProductOrders = async (req, res) => {
-  let message = "";
-
   try {
     const { orders: toShip } = req.body;
 
     if (!toShip || toShip.length <= 0)
       return res.status(406).json({ error: error.invalidOrdersToShip });
-    /*
-     * Get all the orders whose products are intended is to be shipped
-     *
-     * Basically, an order and its entire product will be shipped.
-     * However, only those with sufficient inventory will be set as LOGISTICS
-     *
-     * When atleast one product is LOGISTICS, then the entire order will be LOGISTICS even if other products
-     * are still PLACED
-     *
-     * It is said the populate is more performant than doing individual async calls
-     */
-    const orders = await Order.find(
-      {
-        _id: { $in: toShip.map((e) => e.orderId) },
-      },
-      "status orderedProducts"
-    )
-      .populate({
-        path: "orderedProducts",
-        // select all because we need to retain those data after bulk writing
-        // the problem encountered was that updating order does perform PATCH logic,
-        // but updating the array of orderedProducts and setting only the status performs
-        // a PUT logic where every other field of orderedProducts is replaced only with that status
 
-        populate: {
-          path: "_product",
-          select: "item _inventory",
+    let messages = [];
 
-          populate: {
-            path: "_inventory",
-            select: "onHand",
-          },
-        },
-      })
-      .exec();
+    await Promise.all(
+      toShip.map(async ({ orderId, productIds: reqProductIds }) => {
+        // these are usually success messages but since this is a transaction, the transaction could be aborted so the message will be useless
+        let tempMessages = [];
 
-    // an array that will hold the data that will refer to the inventory to updated
-    let inventoryBulkUpdate = [];
-    let orderBulkUpdate = [];
+        // individually turning each product ids to stringify because they are using single quotes
+        let productIds = reqProductIds.map((id) => JSON.stringify(id));
 
-    // iterate through each orders to perform the inventory manipulations
-    orders.forEach((order) => {
-      // variable to hold whenever every product of the order is all logistics
-      let isOneLogistics = true;
+        const session = await mongoose.connection.startSession();
+        try {
+          session.startTransaction();
 
-      // the collection of product ids for the seller products
-      // these product ids are ensured to be only those ordered products
-      // whose status are PLACED.
-      // Because when the fronted renders the UI for shipping products, it
-      // makes an API request to get all orders with orderedProducts whose status is LOGISTICS
-      const toShipProductIds = toShip.find(
-        (e) => JSON.stringify(e.orderId) === JSON.stringify(order._id)
-      ).productIds;
+          if (orderId && productIds.length > 0) {
+            const order = await Order.findById(
+              orderId,
+              "shipmentDetails status orderedProducts"
+            ).session(session);
 
-      // iterate through each product Ids to ship and find their corresponding orderedProduct._product
-      toShipProductIds.forEach((productId) => {
-        // find orderedProduct
-        const orderedProductIndex = order.orderedProducts.findIndex(
-          (orderedProduct) => {
-            console.log(JSON.stringify(orderedProduct._product._id));
-            console.log(JSON.stringify(productId));
-            return (
-              JSON.stringify(orderedProduct._product._id) ===
-              JSON.stringify(productId)
+            let areAllLogisticsOrHigher = true;
+
+            // iterated ordered products to make inventory validations and manipulations
+            await Promise.all(
+              order.orderedProducts.map(async (orderedProduct, idx) => {
+                const stringifiedId = JSON.stringify(orderedProduct._product);
+                console.log(
+                  "stringifiedId",
+                  stringifiedId,
+                  typeof stringifiedId
+                );
+
+                if (productIds.includes(stringifiedId)) {
+                  // find product and get inventory
+                  const product = await Product.findById(
+                    orderedProduct._product,
+                    "item _inventory"
+                  )
+                    .populate({ path: "_inventory", select: "onHand" })
+                    .session(session);
+
+                  //#region inventory manipulations
+                  let updatedInventories = [];
+
+                  let quantity = order.orderedProducts[idx].quantity;
+                  product._inventory.forEach(({ _id, onHand }, idx) => {
+                    if (quantity > 0) {
+                      let oldQuantity = quantity;
+                      quantity -= onHand;
+
+                      // handling negative. Negative means there is still onHand even after reducing quantity
+                      if (quantity < 0) quantity = 0;
+
+                      // compute new onHand value
+                      const taken = oldQuantity - quantity;
+                      product._inventory[idx].onHand -= taken;
+
+                      // save id and onHand so it can be updated
+                      updatedInventories.push({
+                        id: _id,
+                        onHand: product._inventory[idx].onHand,
+                      });
+                    }
+                  });
+                  //#endregion
+
+                  if (quantity > 0) {
+                    messages.push({
+                      message: `Order for ${order.shipmentDetails.firstName} ${order.shipmentDetails.lastName} not shipped`,
+                      severity: "information",
+                    });
+                    messages.push({
+                      message: `${product.item} has insufficient quantity`,
+                      severity: "warning",
+                    });
+
+                    // ABORT PROCESSING FOR CURRENT ORDER. PROCEED TO NEXT ORDER
+                    // we need to stop the MAP loop await session.abortTransaction();
+                    throw "Insufficient quantity"; // just raise an error to break the session entirely and proceed to next order
+                  } else {
+                    // update inventory
+                    await Promise.all(
+                      updatedInventories.map(async ({ id, onHand }) => {
+                        await Inventory.findOneAndUpdate(
+                          { _id: id },
+                          { onHand: onHand }
+                        ).session(session);
+                      })
+                    );
+                    tempMessages.push({
+                      message: `Inventory of ${product.item} updated`,
+                      severity: "information",
+                    });
+
+                    // update order.orderedProducts.status
+                    order.orderedProducts[idx].status = orderStatuses.LOGISTICS;
+
+                    console.log("order", order);
+                    console.log("product", product);
+                  }
+                } // else not in toShip[].products = pass
+
+                // areAllLogisticsOrHigher
+                if (
+                  orterStatusesHierarchy[order.orderedProducts[idx].status] <
+                  orterStatusesHierarchy[orderStatuses.LOGISTICS]
+                ) {
+                  // status of order could still be at PLACED
+                  areAllLogisticsOrHigher = false;
+                } // else orderedProduct has a status higher than PLACED
+              })
             );
+
+            // check order.status
+            if (areAllLogisticsOrHigher) {
+              order.status = orderStatuses.LOGISTICS;
+            }
+
+            // update order
+            await order.save();
+
+            await session.commitTransaction();
+
+            // message
+            messages.push({
+              message: `Your products for the order of ${order.shipmentDetails.firstName} ${order.shipmentDetails.lastName} is waiting to be packed`,
+              severity: "success",
+            });
+
+            // since transaction was not aborted, add the temp messages
+            messages = [...messages, ...tempMessages];
+          } else {
+            messages.push({ message: "Order not found", severity: "error" });
+            throw "Order not found";
           }
-        );
+        } catch (err) {
+          // throwing error will go here
 
-        console.log(orderedProductIndex);
-        console.log(order.orderedProducts[orderedProductIndex]);
-
-        let orderedQuantity =
-          order.orderedProducts[orderedProductIndex].quantity;
-
-        // a temporary array to hold the inventory to be updated for this product
-        let tempInventoryBulk = [];
-
-        order.orderedProducts[orderedProductIndex]._product._inventory.every(
-          (inventory) => {
-            const temp = {
-              _id: "",
-              onHand: 0,
-            };
-
-            // if ordered quantity for nth iteration is 0 then stop the loop.
-            // we have already sufficed the order
-            if (orderedQuantity <= 0) return false;
-
-            //
-            const remaining = orderedQuantity;
-            orderedQuantity =
-              orderedQuantity - inventory.onHand >= 0
-                ? orderedQuantity - inventory.onHand // the result would be the remaining balance of ordered quantity
-                : 0; // the ordered quantity is less than the onHand so this inventory will be able to suffice the balance order quantity
-            inventory.onHand =
-              inventory.onHand - remaining >= 0
-                ? inventory.onHand - remaining // the remaining balance of the inventory after subtract the remaining orderd quantity
-                : 0; // the inventory is now 0 because it has no more items. It has become lower than the ordered quantity, hence, it was not able to suffice the ordered quantity
-
-            // modify temp
-            temp._id = inventory._id;
-            temp.onHand = inventory.onHand;
-
-            tempInventoryBulk.push(temp);
-
-            return true;
-          }
-        );
-
-        // if ordered quantity is sufficient with inventory, then save the
-        // inventories (inside the temp) in the inventory bulk
-        if (orderedQuantity <= 0) {
-          inventoryBulkUpdate = inventoryBulkUpdate.concat(tempInventoryBulk);
-
-          // set the product status as logistics
-          order.orderedProducts[orderedProductIndex].status =
-            orderStatuses.LOGISTICS;
-
-          // this indicate that atleast one product in the order is for LOGISTICS
-          isOneLogistics = true;
+          console.log(err.message);
+          await session.abortTransaction();
+        } finally {
+          session.endSession();
         }
-        // if the iteration reaches to the end without the quantity being 0
-        // then the product will not be set to logistics
+      })
+    );
 
-        // satisfying this condition indicates that the current product is not shippable due to low inventory
-        if (
-          order.orderedProducts[orderedProductIndex].status.toUpperCase() ===
-          orderStatuses.PLACED.toUpperCase()
-        ) {
-          // s
-          message =
-            message +
-            " Products " +
-            order.orderedProducts[orderedProductIndex]._product.item +
-            " has insufficient quantity.";
-        } else {
-        }
-      });
-
-      // identify whether to place the entire order as LOGISTICS
-      if (isOneLogistics) {
-        order.status = orderStatuses.LOGISTICS;
-
-        message = `${message} Order ${order._id} status has been set to as 'Logistics'.`;
-      }
-
-      // save the order to the bulk order to be updated
-      orderBulkUpdate.push(order);
-    });
-
-    // build bulk write
-    const inventoryBulkArray = inventoryBulkUpdate.map((inventory) => ({
-      updateOne: {
-        filter: { _id: inventory._id },
-        update: { onHand: inventory.onHand },
-        upsert: false,
-      },
-    }));
-    const orderBulkArray = orderBulkUpdate.map((order) => ({
-      updateOne: {
-        filter: { _id: order._id },
-        update: {
-          status: order.status,
-          orderedProducts: order.orderedProducts.map((e) => ({
-            rated: e.rated,
-            _id: e._id,
-            status: e.status,
-            _product: e._product._id,
-            priceAtPoint: e.priceAtPoint,
-            quantity: e.quantity,
-          })),
-        },
-        upsert: false,
-      },
-    }));
-
-    // bulk update
-    const inventoryRes = await Inventory.bulkWrite(inventoryBulkArray);
-    const orderRes = await Order.bulkWrite(orderBulkArray);
-
-    if (inventoryRes.result.writeErrors.length > 0)
-      message += `An was encountered in updating the inventory`;
-
-    if (orderRes.result.writeErrors.length > 0)
-      message += `An was encountered in updating the order record`;
-
-    return res.status(200).json({ message, inventoryRes, orderRes });
+    return res.status(201).json({ messages });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: error.serverError });
