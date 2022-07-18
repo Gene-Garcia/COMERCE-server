@@ -34,3 +34,14 @@ exports.orderStatuses = {
   // end deliverer status used
   FULFILLED: "FULFILLED",
 };
+
+exports.orterStatusesHierarchy = {
+  PLACED: 0,
+  LOGISTICS: 1,
+  PACKED: 2,
+  "SELLER PICK UP": 3,
+  WAREHOUSE: 4,
+  "CUSTOMER DELIVERY": 5,
+  "DELIVERED AND FOR REVIEW": 6,
+  FULFILLED: 7,
+};
