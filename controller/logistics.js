@@ -7,11 +7,7 @@
 const mongoose = require("mongoose");
 const { deliveryTypes } = require("../config/deliveryType");
 const { error } = require("../config/errorMessages");
-const {
-  orderStatuses,
-  ortersStatusesHierarchy,
-  orterStatusesHierarchy,
-} = require("../config/status");
+const { orderStatuses, orderStatusesHierarchy } = require("../config/status");
 const { parseGetWaybillDataIds } = require("../utils/parsingHelper");
 
 // model
@@ -28,12 +24,12 @@ const Deliverer = require("mongoose").model("Deliverer");
  * Dynamic controller-route where it can accept a list of orders and the products to ship.
  * The request may contain only 1 orders-products to ship or various orders-products to ship
  * Nonetheless, it will iterate an orders list. [{orderId: "", productIds: ["", "", ""]}, {...}, ...]
- * 
+ *
  * Updates each passed order and productIds and changes status to LOGISTICS, that is,
  * if product inventory is sufficient.
- * 
+ *
  * Also performs inventory manipulations to update products' inventories if quantity matches
- * 
+ *
  * Then, order.status will be updated once its ordered products has a status of 'LOGISTICS or higher'
  */
 exports.shipProductOrders = async (req, res) => {
@@ -147,8 +143,8 @@ exports.shipProductOrders = async (req, res) => {
 
                 // areAllLogisticsOrHigher
                 if (
-                  orterStatusesHierarchy[order.orderedProducts[idx].status] <
-                  orterStatusesHierarchy[orderStatuses.LOGISTICS]
+                  orderStatusesHierarchy[order.orderedProducts[idx].status] <
+                  orderStatusesHierarchy[orderStatuses.LOGISTICS]
                 ) {
                   // status of order could still be at PLACED
                   areAllLogisticsOrHigher = false;
@@ -269,62 +265,122 @@ exports.packOrders = async (req, res) => {
   try {
     const orders = req.body.orders;
 
-    let customerNames = [];
     let updatedOrders = [];
+    let messages = [];
 
     await Promise.all(
       orders.map(async ({ orderId, productIds }) => {
-        if (!orderId)
-          return res.status(406).json({ error: error.incompleteData });
+        let areAllPackedOrHigher = true;
 
-        // get orders and all orderedProducts, regardless if from different sellers
-        const order = await Order.findById(orderId).populate({
-          path: "orderedProducts._product",
-          select: "item",
-          match: { _id: { $in: productIds } },
-        });
+        const session = await mongoose.connection.startSession();
+        try {
+          session.startTransaction();
 
-        if (!order) return res.status(404).json({ error: error.orderNotFound });
+          const order = await Order.findById(
+            orderId,
+            "status shipmentDetails orderedProducts"
+          ).session(session);
 
-        // ordered product status
-        let isAllPacked = true;
+          //#region validations
+          if (!order) {
+            messages.push({
+              message: `Order of ${orderId} not found`,
+              severity: "warning",
+            });
 
-        order.orderedProducts = order.orderedProducts.map((product) => {
-          // the query to populate the order.orderedProducts only populates those in productIds
-          // we can use to check if _product is not null to know which order.orderedProduct.status to be set as PACKED
-          if (product._product) product.status = orderStatuses.PACKED;
+            throw "Order not found";
+          }
 
-          // although, only orderedProduct in productIds will have _product the orderedProduct.status is still
-          if (product.status.toUpperCase() != orderStatuses.PACKED)
-            isAllPacked = false;
+          if (!productIds || productIds.length <= 0) {
+            messages.push({
+              message: `Ordered products of ${orderId} not found`,
+              severity: "warning",
+            });
 
-          return product;
-        });
+            throw "Ordered products not found";
+          }
+          //#endregion
 
-        if (isAllPacked) order.status = orderStatuses.PACKED;
+          // iterate and match ordered products
+          order.orderedProducts.forEach((orderedProduct, idx) => {
+            //#region console logs for testing
+            // console.log(
+            //   productIds,
+            //   "|",
+            //   orderedProduct._product,
+            //   "is type of",
+            //   typeof orderedProduct._product
+            // );
+            // console.log(
+            //   "productIds.includes(String(orderedProduct._product)",
+            //   productIds.includes(String(orderedProduct._product))
+            // );
+            // console.log(
+            //   "productIds.includes(JSON.stringify(orderedProduct._product))",
+            //   productIds.includes(JSON.stringify(orderedProduct._product))
+            // );
 
-        // finally, update order
-        await order.save();
+            // console.log(
+            //   "\t\t",
+            //   orderedProduct._product,
+            //   "is a typeof",
+            //   typeof orderedProduct._product,
+            //   productIds[0],
+            //   "is a typeof",
+            //   typeof productIds[0]
+            // );
+            // console.log(
+            //   "\t\t",
+            //   String(orderedProduct._product) === productIds[0],
+            //   `using string String(${orderedProduct._product})`
+            // );
+            // console.log(
+            //   "\t\t",
+            //   JSON.stringify(orderedProduct._product) === productIds[0],
+            //   `using stringify JSON.stringify(${orderedProduct._product})`
+            // );
+            //#endregion
 
-        updatedOrders.push(order._id);
-        customerNames.push(
-          order.shipmentDetails.firstName + " " + order.shipmentDetails.lastName
-        );
+            if (productIds.includes(String(orderedProduct._product))) {
+              order.orderedProducts[idx].status = orderStatuses.PACKED;
+            } // else product not in request or product not from seller
+
+            // areAllPacked
+            if (
+              orderStatusesHierarchy[order.orderedProducts[idx].status] <
+              orderStatusesHierarchy[orderStatuses.PACKED]
+            ) {
+              areAllPackedOrHigher = false; // atleast one order has a hierarchy less than being PACKED
+            }
+          });
+
+          if (areAllPackedOrHigher) order.status = orderStatuses.PACKED;
+
+          // save
+          await order.save(session);
+
+          await session.commitTransaction();
+
+          updatedOrders.push(order._id);
+
+          messages.push({
+            message: `Prepare packing ordered products of ${order.shipmentDetails.firstName} ${order.shipmentDetails.lastName}`,
+            severity: "information",
+          });
+        } catch (err) {
+          await session.abortTransaction();
+
+          messages.push({
+            message: `Unable to prepare order ${orderId}`,
+            severity: "error",
+          });
+        } finally {
+          session.endSession();
+        }
       })
     );
 
-    if (updatedOrders.length > 0)
-      return res.status(201).json({
-        message: `Orders for customers ${customerNames.join(
-          ","
-        )} are now updated as Packed.`,
-        updatedOrders,
-      });
-    else
-      return res.status(200).json({
-        message:
-          "Unable to updated printed waybill orders. Something went wrong, try again.",
-      });
+    return res.status(201).json({ updatedOrders, messages });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: error.serverError });

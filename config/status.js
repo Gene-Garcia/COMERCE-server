@@ -35,7 +35,7 @@ exports.orderStatuses = {
   FULFILLED: "FULFILLED",
 };
 
-exports.orterStatusesHierarchy = {
+exports.orderStatusesHierarchy = {
   PLACED: 0,
   LOGISTICS: 1,
   PACKED: 2,
