@@ -316,7 +316,8 @@ exports.updateBusinessInformation = async (req, res) => {
  * GET, seller-auth
  *
  * Returns all orders that
- *  1. order.status is LOGISTICS
+ *  1. order.status is LOGISTICS (NOT APPLICABLE ANYMORE)
+ *  1. order.status are either PLACED OR LOGISTICS
  *
  *  the _product is not a product of this user/seller
  *  2. order.orderedProducts._product is NOT NULL
@@ -339,7 +340,7 @@ exports.getForPackOrders = async (req, res) => {
 
     // get all orders that is LOGISTICS (but an orders is LOGISTICS even if only orderedProduct is LOGISTICS)
     let orders = await Order.find(
-      { status: orderStatuses.LOGISTICS },
+      { status: { $in: [orderStatuses.PLACED, orderStatuses.LOGISTICS] } },
       `orderDate ETADate status 
       shipmentDetails.firstName shipmentDetails.lastName
       orderedProducts.status orderedProducts._product orderedProducts.quantity`
