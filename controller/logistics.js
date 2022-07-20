@@ -548,8 +548,6 @@ exports.pickUpProducts = async (req, res) => {
 
     let messages = [];
 
-    const logiArr = [];
-
     await Promise.all(
       Object.entries(products).map(async ([businessId, product]) => {
         const tempMessages = [];
@@ -579,10 +577,12 @@ exports.pickUpProducts = async (req, res) => {
           });
 
           await logistics.save({ session });
-          logiArr.push(logistics);
 
           // create message
-          tempMessages.push(`Logistics record for ${businessId} created.`);
+          tempMessages.push({
+            message: `Logistics record for ${businessId} created.`,
+            severity: "success",
+          });
 
           // iterate and find orders and update status as pick up
           await Promise.all(
@@ -611,17 +611,22 @@ exports.pickUpProducts = async (req, res) => {
                 logiOrder._order +
                 " set to " +
                 orderStatuses.PICK_UP;
-              tempMessages.push(tempMessage);
+              tempMessages.push({
+                message: tempMessage,
+                severity: "information",
+              });
 
               if (isAllPickUp) {
                 order.status = orderStatuses.PICK_UP;
 
-                tempMessages.push(
-                  "Order " +
+                tempMessages.push({
+                  message:
+                    "Order " +
                     logiOrder._order +
                     " set to " +
-                    orderStatuses.PICK_UP
-                );
+                    orderStatuses.PICK_UP,
+                  severity: "information",
+                });
               }
               // update
               await order.save({ session });
@@ -635,6 +640,10 @@ exports.pickUpProducts = async (req, res) => {
         } catch (err) {
           await session.abortTransaction();
           console.error(err);
+          messages.push({
+            message: "Unable to pick up order(s)",
+            severity: "error",
+          });
         } finally {
           session.endSession();
         }
@@ -658,6 +667,7 @@ exports.pickUpProducts = async (req, res) => {
 exports.getLogisticsWithMe = async (req, res) => {
   try {
     const { logisticsType } = req.params;
+    console.log(logisticsType);
 
     if (!logisticsType)
       return res.status(406).json({ message: error.incompleteData });
