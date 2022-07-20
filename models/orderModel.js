@@ -42,7 +42,7 @@ const orderSchema = Schema({
 
   paymentInformation: {
     type: Object,
-    required: "Payment information is required",
+    // required: "Payment information is required", not required because COD payment will have no other paymentInformation
   },
 
   orderedProducts: [
