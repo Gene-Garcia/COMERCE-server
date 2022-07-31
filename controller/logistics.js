@@ -708,3 +708,56 @@ exports.getLogisticsWithMe = async (req, res) => {
     return res.status(500).json({ message: e.error });
   }
 };
+
+/*
+ * PATCH, Logistics auth
+ *
+ * Add a failed attempt to logistics record with the deliverer
+ * After saving attempt, if count is 2 then the product will now be considered
+ * as cancelled.
+ */
+exports.recordFailedAttempts = async (req, res) => {
+  try {
+    const { logisticsId, reason } = req.body;
+
+    if (!reason || !logisticsId)
+      return res.status(406).json({ message: error.incompleteData });
+
+    // find deliverer
+    const deliverer = await Deliverer.findOne(
+      { _user: req.user._id },
+      "_id"
+    ).exec();
+    if (!deliverer)
+      return res.status(404).json({ message: error.delivererNotFound });
+
+    // find logistics
+    const logistics = await Logistics.findById(
+      logisticsId,
+      "failedAttempts"
+    ).exec();
+
+    // new attempt record
+    const attempt = {
+      reason: reason.trim(),
+      attemptDate: Date.now(),
+    };
+    logistics.failedAttempts.push(attempt);
+
+    // save
+    await logistics.save();
+
+    // if attempt is already 2, CANCEL the logistics
+    if (logistics.failedAttempts.length >= 2) {
+      return res.status(201).json({
+        message: `${logisticsId} reached final attempt. Logistics cancelled.`,
+      });
+    } else {
+      return res
+        .status(201)
+        .json({ message: `Delivery attempt to ${logisticsId} recorded.` });
+    }
+  } catch (e) {
+    return res.status(500).json({ message: error.serverError });
+  }
+};
