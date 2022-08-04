@@ -33,6 +33,8 @@ exports.orderStatuses = {
   REVIEW: "DELIVERED AND FOR REVIEW", // Delivered
   // end deliverer status used
   FULFILLED: "FULFILLED",
+
+  FAILED_CANCELLED: "FAILED AND CANCELLED DELIVERY", // either failed delivery to warehouse or failed delivery to customer
 };
 
 exports.orderStatusesHierarchy = {
@@ -44,4 +46,5 @@ exports.orderStatusesHierarchy = {
   "CUSTOMER DELIVERY": 5,
   "DELIVERED AND FOR REVIEW": 6,
   FULFILLED: 7,
+  "FAILED AND CANCELLED DELIVERY": 8,
 };

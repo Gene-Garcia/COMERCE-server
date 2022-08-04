@@ -11,5 +11,4 @@ const { placeCustomerOrder, customerOrders } = require("../controller/order");
 router.route("/place").post(authorize, placeCustomerOrder);
 router.route("/orders").get(authorize, customerOrders);
 
-
 module.exports = router;

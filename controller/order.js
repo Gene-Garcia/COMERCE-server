@@ -12,6 +12,7 @@ const Business = require("mongoose").model("Business");
 const populatePayment = require("../utils/paymentHelper");
 const populateShipmentDetails = require("../utils/shipmentHelper");
 const util = require("util");
+
 /*
  * POST Method
  *
@@ -210,7 +211,7 @@ exports.sellerPendingOrders = async (req, res) => {
       },
     });
 
-    console.log(util.inspect(orders, false, null, true /* enable colors */));
+    // console.log(util.inspect(orders, false, null, true /* enable colors */));
 
     // THIS LOGIC IS NOT FOR THIS GET METHOD, IT SHOULD BE FOR PATCH METHOD
     // // ordered products _products that are null are products not owned by this user/seller
@@ -253,50 +254,46 @@ exports.sellerPendingOrders = async (req, res) => {
   }
 };
 
+
 /*
- * GET METHOD, Seller auth
+ * GET Method, Seller Auth
  *
- * Retrieves the order of the order id for modal information display.
+ * Retrieves data for order modal. Expects an orderId parameter
  */
-exports.findOrderForSeller = async (req, res) => {
+exports.getOrderModal = async (req, res) => {
   try {
-    const orderId = req.params.orderId;
+    const orderId = req.params.id;
+    console.log("order id", orderId);
 
-    if (!orderId) return res.status(406).json({ error: error.incompleteData });
+    if (!orderId)
+      return res.status(406).json({ message: error.incompleteData });
 
-    // find business
+    // validate seller account
     const business = await Business.findOne(
-      { _owner: req.user._id }, //
+      { _owner: req.user._id },
       "_id"
     ).exec();
     if (!business)
-      return res.status(404).json({ error: error.sellerAccountMissing });
+      return res.status(404).json({ message: error.sellerAccountMissing });
 
-    // find orderId
-    // find if the product is this business
-    let order = await Order.findById(
+    const order = await Order.findById(
       orderId,
-      "orderedProducts  orderDate ETADate shipmentDetails paymentMethod"
+      `orderedProducts._product orderedProducts.priceAtPoint orderedProducts.quantity
+      paymentMethod shipmentDetails shippingFee`
     ).populate({
-      path: "orderedProducts",
-      select: "priceAtPoint quantity",
-      populate: {
-        path: "_product",
-        select: "item imageAddress",
-        match: { _business: business._id },
-      },
+      path: "orderedProducts._product",
+      match: { _business: business._id },
+      select: "item imageAddress",
     });
 
-    // filter those products not of this business
+    // filter products not to this seller-business
     order.orderedProducts = order.orderedProducts.filter(
       (orderedProduct) => orderedProduct._product
     );
 
-    if (!order) return res.status(406).json({ error: error.orderNotFound });
-
-    return res.status(200).json({ order: order });
+    return res.status(200).json({ order });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: error.serverError });
+    console.log(e.message);
+    return res.status(500).json({ message: e.message });
   }
 };
