@@ -202,7 +202,10 @@ exports.sellerPendingOrders = async (req, res) => {
           ],
         },
       },
-      "status orderedProducts shipmentDetails paymentMethod"
+      `orderedProducts.status orderedProducts._product
+       paymentMethod orderDate ETADate
+       shipmentDetails.firstName shipmentDetails.lastName
+       shipmentDetails.barangay shipmentDetails.cityMunicipality shipmentDetails.province`
     ).populate({
       path: "orderedProducts._product",
       select: "_business item imageAddress",
@@ -210,18 +213,6 @@ exports.sellerPendingOrders = async (req, res) => {
         _business: business._id,
       },
     });
-
-    // console.log(util.inspect(orders, false, null, true /* enable colors */));
-
-    // THIS LOGIC IS NOT FOR THIS GET METHOD, IT SHOULD BE FOR PATCH METHOD
-    // // ordered products _products that are null are products not owned by this user/seller
-    // orders = orders.map((order) => ({
-    //   ...order._doc,
-    //   orderedProducts: order.orderedProducts.map((product) => ({
-    //     ...product._doc,
-    //     status: product._product ? orderStatus[1] : product.status,
-    //   })),
-    // }));
 
     /*
      * remove ordered product where _product is null because that
@@ -253,7 +244,6 @@ exports.sellerPendingOrders = async (req, res) => {
     return res.status(500).json({ error: error.serverError });
   }
 };
-
 
 /*
  * GET Method, Seller Auth
