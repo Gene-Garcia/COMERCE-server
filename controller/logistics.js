@@ -761,3 +761,52 @@ exports.recordFailedAttempts = async (req, res) => {
     return res.status(500).json({ message: error.serverError });
   }
 };
+
+/*
+ * PATCH Logistics auth
+ *
+ * For a logistics seller pick up to be considered a success, then the
+ * 'success' field will be populated
+ *
+ * the PATCH body contains the logistics id
+ */
+exports.successPickUp = async (req, res) => {
+  try {
+    const { logisticsId } = req.body;
+
+    if (!logisticsId)
+      return res.status(406).json({ message: error.incompleteData });
+
+    // find verify deliverer
+    const deliverer = await Deliverer.findOne(
+      { _user: req.user._id },
+      "_id"
+    ).exec();
+    if (!deliverer)
+      return res.status(404).json({ message: error.delivererNotFound });
+
+    // find logistics
+    const logistics = await Logistics.findById(logisticsId).exec();
+    if (!logistics)
+      return res.status(404).json({ message: error.productsLogisticsNotFound });
+
+    // verify that the logistics is references to that deliverer
+    if (JSON.stringify(deliverer._id) !== JSON.stringify(logistics._deliverer))
+      return res
+        .status(400)
+        .json({ message: error.unathorizedDeliverForLogistics });
+
+    // reaching here indicates success pick up
+    logistics.successAttempt = {
+      proof: `${logistics._id}$${deliverer._id}`,
+    };
+    await logistics.save();
+
+    return res.status(201).json({
+      message: `${logisticsId} pick up order delivered to warehouse.`,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: error.serverError });
+  }
+};
