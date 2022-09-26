@@ -684,6 +684,7 @@ exports.getLogisticsWithMe = async (req, res) => {
       {
         logisticsType: logisticsType.toUpperCase(),
         deliverer: deliverer._id,
+        successAttempt: null,
       },
       "_business orders dateStarted failedAttempts"
     ).populate([
@@ -699,8 +700,6 @@ exports.getLogisticsWithMe = async (req, res) => {
       ...logistic._doc,
       checked: false,
     }));
-
-    console.log(logistics);
 
     return res.status(200).json({ logistics });
   } catch (e) {
