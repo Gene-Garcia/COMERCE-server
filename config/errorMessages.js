@@ -67,9 +67,12 @@ const error = {
   logisticsAccountNotFound:
     "This account did not match any logistics record in our system. Please try again later or you may contact our support if problem persists.",
 
-  delivererNotFound : "Your record is missing. Try again.",
+  delivererNotFound: "Your record is missing. Try again.",
 
   productsLogisticsNotFound: "Logistics record not found.",
+
+  unathorizedDeliverForLogistics:
+    "This pick up logistics is not in your record.",
 };
 exports.error = error;
 
