@@ -12,6 +12,7 @@ const {
   pickUpProducts,
   getLogisticsWithMe,
   recordFailedAttempts,
+  successPickUp,
 } = require("../controller/logistics");
 
 // route
@@ -30,5 +31,7 @@ router.post("/orders/pick-up", logisticsAuthorize, pickUpProducts);
 router.get("/with-me/:logisticsType", logisticsAuthorize, getLogisticsWithMe);
 
 router.patch("/delivery/attempt", logisticsAuthorize, recordFailedAttempts);
+
+router.patch("/orders/pick-up/success", logisticsAuthorize, successPickUp);
 
 module.exports = router;
