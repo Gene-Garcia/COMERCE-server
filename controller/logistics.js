@@ -786,7 +786,10 @@ exports.successPickUp = async (req, res) => {
       return res.status(404).json({ message: error.delivererNotFound });
 
     // find logistics
-    const logistics = await Logistics.findById(logisticsId).exec();
+    const logistics = await Logistics.findById(
+      logisticsId,
+      "_id _deliverer"
+    ).exec();
     if (!logistics)
       return res.status(404).json({ message: error.productsLogisticsNotFound });
 
