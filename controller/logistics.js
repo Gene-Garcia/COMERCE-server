@@ -765,7 +765,11 @@ exports.recordFailedAttempts = async (req, res) => {
  * PATCH Logistics auth
  *
  * For a logistics seller pick up to be considered a success, then the
- * 'success' field will be populated
+ * 'success' field will be populated.
+ * 
+ * Then, each orders status and orderedProduct status must be set to WAREHOUSE.
+ * WAREHOUSE implies that a product that is part of an order pick up and
+ * delivered to the central warehouse.
  *
  * the PATCH body contains the logistics id
  */
@@ -787,8 +791,8 @@ exports.successPickUp = async (req, res) => {
     // find logistics
     const logistics = await Logistics.findById(
       logisticsId,
-      "_id _deliverer"
-    ).exec();
+      "_id _deliverer orders"
+    ).populate({ path: "orders.order" }); // FOR TOMORROW: POPULATE ORDERS AND ORDERS.PRODUCTS OR MANUAL ITERATION USING THE ID
     if (!logistics)
       return res.status(404).json({ message: error.productsLogisticsNotFound });
 
@@ -798,11 +802,14 @@ exports.successPickUp = async (req, res) => {
         .status(400)
         .json({ message: error.unathorizedDeliverForLogistics });
 
+    // transaction
+    // query each product and order and set as WAREHOUSE
+
     // reaching here indicates success pick up
     logistics.successAttempt = {
       proof: `${logistics._id}$${deliverer._id}`,
     };
-    await logistics.save();
+    // await logistics.save();
 
     return res.status(201).json({
       message: `${logisticsId} pick up order delivered to warehouse.`,

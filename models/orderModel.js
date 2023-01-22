@@ -76,6 +76,10 @@ const orderSchema = Schema({
       },
     },
   ],
+
+  cancelled: {
+    
+  }
 });
 
 // save to mongoose
